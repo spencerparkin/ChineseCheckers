@@ -11,3 +11,12 @@
 *.lai
 *.la
 *.a
+
+# Dev-Studio crap
+*.ncb
+*.suo
+*.user
+*.tss
+
+# Built crap
+Build/
