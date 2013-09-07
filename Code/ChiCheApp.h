@@ -11,6 +11,10 @@ namespace ChiChe
 		virtual ~App( void );
 
 		virtual bool OnInit( void ) override;
+
+	private:
+
+		Frame* frame;
 	};
 
 	//=====================================================================================

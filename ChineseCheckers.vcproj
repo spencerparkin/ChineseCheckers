@@ -191,6 +191,42 @@
 				RelativePath=".\Code\ChiCheApp.h"
 				>
 			</File>
+			<File
+				RelativePath=".\Code\ChiCheBoard.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheBoard.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheCanvas.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheFrame.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheFrame.h"
+				>
+			</File>
+			<Filter
+				Name="c3ga"
+				>
+				<File
+					RelativePath=".\Code\c3ga\c3ga.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Code\c3ga\c3ga.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Code\c3ga\c3ga_parse_mv.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>
