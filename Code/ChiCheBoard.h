@@ -13,8 +13,11 @@ namespace ChiChe
 		{
 			ADJACENCIES = 6,
 			PIECES_PER_ZONE = 10,
+			LAYOUT_SIZE = 17,
+			LOCATION_EDGE_LENGTH = 5,
 		};
 
+		// Many things depend on the order of these enums!
 		enum
 		{
 			NONE,
@@ -26,16 +29,25 @@ namespace ChiChe
 			CYAN,
 		};
 
+		static int layoutMap[ LAYOUT_SIZE ][ LAYOUT_SIZE ];
+
 		class Location;
 		class Piece;
 
 		typedef std::list< int > MoveSequence;
 		typedef std::map< int, Location* > LocationMap;
 		typedef std::list< Piece* > PieceList;
+		typedef std::map< int, bool > VisitationMap;
 
 		// Construct a game board with the given participants.
-		Board( int participants );
+		Board( int participants, bool animate );
 		~Board( void );
+
+		// Which zone are pieces of the given color trying to get to?
+		static int ZoneTarget( int color );
+
+		// Is the given color particpating in the game?
+		bool IsParticipant( int color );
 
 		// Return the winning piece color, if any.
 		int DetermineWinner( void );
@@ -65,10 +77,20 @@ namespace ChiChe
 		{
 		public:
 
-			Location( const c3ga::vectorE3GA& position, int occupant, int zone, int locationID );
+			Location( int occupant, int zone, int locationID );
 			~Location( void );
 
 			void Render( GLenum renderMode );
+
+			void CalcPositionOfAdjacencies( const c3ga::vectorE3GA& position, VisitationMap& visitationMap );
+
+			void SetAdjacency( int index, Location* location );
+			Location* GetAdjacency( int index );
+
+			int GetZone( void );
+
+			void SetOccupant( int occupant );
+			int GetOccupant( void );
 
 		private:
 
@@ -102,7 +124,13 @@ namespace ChiChe
 
 	private:
 
-		int particpants;
+		void GenerateGraph( bool animate );
+
+		// These are internal, because only the application of a move causes us to change who's turn it is.
+		void NextTurn( void );
+		void IncrementTurn( void );
+
+		int participants;
 		int whosTurn;
 		LocationMap locationMap;
 		PieceList pieceList;

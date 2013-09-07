@@ -38,30 +38,8 @@ void Canvas::OnPaint( wxPaintEvent& event )
 	Client* client = wxGetApp().GetClient();
 	if( client )
 		client->Render( GL_RENDER );
-	else
-		RenderAxes();
 
 	PostRender( GL_RENDER );
-}
-
-//=====================================================================================
-void Canvas::RenderAxes( void )
-{
-	glBegin( GL_LINES );
-
-	glColor3f( 1.f, 0.f, 0.f );
-	glVertex3f( -10.f, 0.f, 0.f );
-	glVertex3f( 10.f, 0.f, 0.f );
-	
-	glColor3f( 0.f, 1.f, 0.f );
-	glVertex3f( 0.f, -10.f, 0.f );
-	glVertex3f( 0.f, 10.f, 0.f );
-
-	glColor3f( 0.f, 0.f, 1.f );
-	glVertex3f( 0.f, 0.f, -10.f );
-	glVertex3f( 0.f, 0.f, 10.f );
-
-	glEnd();
 }
 
 //=====================================================================================

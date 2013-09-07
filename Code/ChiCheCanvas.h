@@ -42,8 +42,6 @@ namespace ChiChe
 		void PreRender( GLenum renderMode );
 		void PostRender( GLenum renderMode );
 
-		void RenderAxes( void );
-
 		void OnPaint( wxPaintEvent& event );
 		void OnSize( wxSizeEvent& event );
 
