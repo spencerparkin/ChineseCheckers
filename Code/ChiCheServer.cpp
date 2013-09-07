@@ -1,49 +1,35 @@
-// ChiCheApp.cpp
+// ChiCheServer.cpp
 
 #include "ChiChe.h"
-
-namespace ChiChe
-{
-	IMPLEMENT_APP( App )
-}
 
 using namespace ChiChe;
 
 //=====================================================================================
-App::App( void )
-{
-	frame = 0;
-	client = 0;
-	server = 0;
-}
-
-//=====================================================================================
-App::~App( void )
+Server::Server( int participants )
 {
 }
 
 //=====================================================================================
-/*virtual*/ bool App::OnInit( void )
+Server::~Server( void )
 {
-	if( !wxApp::OnInit() )
-		return false;
+}
 
-	frame = new Frame();
-	frame->Show();
-
+//=====================================================================================
+bool Server::Initialize( unsigned int port )
+{
 	return true;
 }
 
 //=====================================================================================
-Client* App::GetClient( void )
+bool Server::Finalize( void )
 {
-	return client;
+	return true;
 }
 
 //=====================================================================================
-Server* App::GetServer( void )
+bool Server::Run( void )
 {
-	return server;
+	return true;
 }
 
-// ChiCheApp.cpp
+// ChiCheServer.cpp

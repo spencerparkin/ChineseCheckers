@@ -200,7 +200,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Code\ChiCheCanvas.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Code\ChiCheCanvas.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheClient.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheClient.h"
 				>
 			</File>
 			<File
@@ -209,6 +221,14 @@
 			</File>
 			<File
 				RelativePath=".\Code\ChiCheFrame.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheServer.h"
 				>
 			</File>
 			<Filter

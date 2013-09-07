@@ -12,9 +12,14 @@ namespace ChiChe
 
 		virtual bool OnInit( void ) override;
 
+		Client* GetClient( void );
+		Server* GetServer( void );
+
 	private:
 
 		Frame* frame;
+		Client* client;
+		Server* server;
 	};
 
 	//=====================================================================================

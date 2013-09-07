@@ -1,49 +1,39 @@
-// ChiCheApp.cpp
+// ChiCheClient.cpp
 
 #include "ChiChe.h"
-
-namespace ChiChe
-{
-	IMPLEMENT_APP( App )
-}
 
 using namespace ChiChe;
 
 //=====================================================================================
-App::App( void )
+Client::Client( Type type )
 {
-	frame = 0;
-	client = 0;
-	server = 0;
+	this->type = type;
+	socket = 0;
+	board = 0;
+	color = Board::NONE;
 }
 
 //=====================================================================================
-App::~App( void )
+Client::~Client( void )
 {
 }
 
 //=====================================================================================
-/*virtual*/ bool App::OnInit( void )
+bool Client::Connect( const wxIPV4address& address )
 {
-	if( !wxApp::OnInit() )
-		return false;
-
-	frame = new Frame();
-	frame->Show();
-
 	return true;
 }
 
 //=====================================================================================
-Client* App::GetClient( void )
+bool Client::Run( void )
 {
-	return client;
+	return true;
 }
 
 //=====================================================================================
-Server* App::GetServer( void )
+bool Client::Render( GLenum renderMode )
 {
-	return server;
+	return true;
 }
 
-// ChiCheApp.cpp
+// ChiCheClient.cpp
