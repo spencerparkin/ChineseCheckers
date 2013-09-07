@@ -231,6 +231,14 @@
 				RelativePath=".\Code\ChiCheServer.h"
 				>
 			</File>
+			<File
+				RelativePath=".\Code\ChiCheSocket.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheSocket.h"
+				>
+			</File>
 			<Filter
 				Name="c3ga"
 				>

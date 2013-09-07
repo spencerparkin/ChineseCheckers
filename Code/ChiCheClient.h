@@ -22,7 +22,7 @@ namespace ChiChe
 
 	private:
 
-		wxSocketClient* socket;
+		Socket* socket;
 		Board* board;
 		Type type;
 		int color;

@@ -10,7 +10,7 @@ namespace ChiChe
 		Server( int participants );
 		~Server( void );
 
-		bool Initialize( unsigned int port );
+		bool Initialize( unsigned short port );
 		bool Finalize( void );
 		bool Run( void );
 
@@ -21,12 +21,15 @@ namespace ChiChe
 		{
 		public:
 
-			wxSocketBase* socket;
+			Socket* socket;
 			int color;
 		};
 
+		typedef std::list< Participant* > ParticipantList;
+
 		Board* board;
 		wxSocketServer* socket;
+		ParticipantList participantList;
 	};
 }
 

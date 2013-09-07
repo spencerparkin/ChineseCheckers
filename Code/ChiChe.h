@@ -31,6 +31,7 @@ namespace ChiChe
 	class Client;
 	class Server;
 	class Canvas;
+	class Socket;
 }
 
 // ChiChe:
@@ -40,5 +41,6 @@ namespace ChiChe
 #include "ChiCheClient.h"
 #include "ChiCheServer.h"
 #include "ChiCheCanvas.h"
+#include "ChiCheSocket.h"
 
 // ChiChe.h

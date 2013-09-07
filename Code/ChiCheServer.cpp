@@ -15,7 +15,7 @@ Server::~Server( void )
 }
 
 //=====================================================================================
-bool Server::Initialize( unsigned int port )
+bool Server::Initialize( unsigned short port )
 {
 	return true;
 }
