@@ -109,26 +109,41 @@ bool Server::ServiceClient( Participant* participant )
 	Socket::Packet inPacket;
 	if( participant->socket->ReadPacket( inPacket ) )
 	{
-		wxInt32 sourceID, destinationID;
-		if( board->UnpackMove( inPacket, sourceID, destinationID ) )
+		switch( inPacket.GetType() )
 		{
-			// A participant can only move the color to which it is assigned and can't make a move if a spectator.
-			if( participant->color != Board::NONE && board->OccupantAtLocation( sourceID ) == participant->color )
+			case Client::GAME_MOVE:
 			{
+				// Don't let clients make moves if someone has one the game.
+				if( Board::NONE != board->DetermineWinner() )
+					break;
+
+				// Grab the move's source and destination locations.
+				wxInt32 sourceID, destinationID;
+				if( !board->UnpackMove( inPacket, sourceID, destinationID ) )
+					break;
+				
+				// A participant can only move the color to which it is assigned and can't make a move if a spectator.
+				if( participant->color == Board::NONE || board->OccupantAtLocation( sourceID ) != participant->color )
+					break;
+
+				// Make sure the move is valid.  Formulate from it a move sequence.
 				Board::MoveSequence moveSequence;
 				if( board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
-				{
-					if( board->ApplyMoveSequence( moveSequence ) )
-					{
-						Socket::Packet outPacket;
-						outPacket.SetType( GAME_MOVE );
-						outPacket.SetData( inPacket.GetData() );
-						outPacket.SetSize( inPacket.GetSize() );
-						outPacket.OwnsMemory( false );
+					break;
+				
+				// Perform the move sequence on the master board.
+				if( !board->ApplyMoveSequence( moveSequence ) )
+					break;
+				
+				// Now go have all the clients make the same move to keep all boards in sync.
+				Socket::Packet outPacket;
+				outPacket.SetType( GAME_MOVE );
+				outPacket.SetData( inPacket.GetData() );
+				outPacket.SetSize( inPacket.GetSize() );
+				outPacket.OwnsMemory( false );
+				BroadcastPacket( outPacket );
 
-						BroadcastPacket( outPacket );
-					}
-				}
+				break;
 			}
 		}
 	}

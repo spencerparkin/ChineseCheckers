@@ -43,7 +43,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	boxSizer->Add( canvas, 1, wxALL | wxGROW, 0 );
 	SetSizer( boxSizer );
 
-	timer.Start( 500 );
+	timer.Start( 100 );
 }
 
 //=====================================================================================
@@ -154,13 +154,19 @@ void Frame::OnExit( wxCommandEvent& event )
 void Frame::OnClose( wxCloseEvent& event )
 {
 	Server* server = wxGetApp().GetServer();
-	server->Finalize();
-	delete server;
-	wxGetApp().SetServer(0);
+	if( server )
+	{
+		server->Finalize();
+		delete server;
+		wxGetApp().SetServer(0);
+	}
 
 	Client* client = wxGetApp().GetClient();
-	delete client;
-	wxGetApp().SetClient(0);
+	if( client )
+	{
+		delete client;
+		wxGetApp().SetClient(0);
+	}
 
 	event.Skip();
 }
@@ -168,6 +174,14 @@ void Frame::OnClose( wxCloseEvent& event )
 //=====================================================================================
 void Frame::OnAbout( wxCommandEvent& event )
 {
+	wxAboutDialogInfo aboutDialogInfo;
+	
+	aboutDialogInfo.SetName( wxT( "Chinese Checkers" ) );
+	aboutDialogInfo.SetVersion( wxT( "1.0" ) );
+	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license." ) );
+	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013 Spencer Parkin <spencer.parkin@disney.com>" ) );
+
+	wxAboutBox( aboutDialogInfo );
 }
 
 //=====================================================================================

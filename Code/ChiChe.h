@@ -13,8 +13,9 @@
 #include <wx/choicdlg.h>
 #include <wx/numdlg.h>
 #include <wx/textdlg.h>
-#include <wx/tokenzr.h>
 #include <wx/progdlg.h>
+#include <wx/aboutdlg.h>
+#include <wx/tokenzr.h>
 
 // OpenGL:
 #include <GL/gl.h>

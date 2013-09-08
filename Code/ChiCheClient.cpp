@@ -26,27 +26,27 @@ bool Client::Connect( const wxIPV4address& address )
 	wxSocketClient* socketClient = new wxSocketClient( wxSOCKET_NOWAIT );
 	socket = new Socket( socketClient );
 	
-	socketClient->Connect( address, false );
-
 	wxString hostName = address.Hostname();
 	int tryCount = 0;
 	int maxTries = 10;
 	wxString progressMessage = wxT( "Connecting..." );
 	wxGenericProgressDialog progressDialog( wxT( "Connecting to host: " ) + hostName, progressMessage, maxTries, wxGetApp().GetFrame(), wxPD_APP_MODAL | wxPD_CAN_ABORT );
-	while( tryCount < maxTries && !socketClient->WaitOnConnect( 1, 0 ) )
+	while( tryCount < maxTries )
 	{
+		socketClient->Connect( address, false );
+		if( socketClient->WaitOnConnect( 1, 0 ) && socketClient->IsConnected() )
+			return true;
+
 		tryCount++;
 		if( tryCount == maxTries )
 			progressMessage = wxT( "Connection attempt failed!" );
+
 		bool cancel = !progressDialog.Update( tryCount, progressMessage );
 		if( cancel )
 			break;
 	}
 
-	if( !socketClient->IsConnected() )
-		return false;
-
-	return true;
+	return false;
 }
 
 //=====================================================================================
