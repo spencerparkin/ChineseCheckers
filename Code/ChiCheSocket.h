@@ -27,10 +27,12 @@ namespace ChiChe
 			Packet( void );
 			~Packet( void );
 
+			void Reset( void );
+
 			void SetType( wxInt32 type );
 			int GetType( void ) const;
 
-			void SetData( wxInt8* data );
+			void SetData( const wxInt8* data );
 			const wxInt8* GetData( void ) const;
 
 			void SetSize( wxInt32 size );
@@ -45,7 +47,7 @@ namespace ChiChe
 		private:
 
 			wxInt32 type;
-			wxInt8* data;
+			const wxInt8* data;
 			wxInt32 size;
 			bool byteSwap;
 			bool ownsMemory;
@@ -58,7 +60,10 @@ namespace ChiChe
 		bool ReadPacket( Packet& packet );
 
 		// Advance the input and output streams of the socket.
-		void Advance( void );
+		bool Advance( void );
+
+		// Is the socket still connected?
+		bool IsConnected( void );
 
 	private:
 

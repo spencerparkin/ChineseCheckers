@@ -37,7 +37,7 @@ bool Socket::ReadPacket( Packet& packet )
 		return false;
 
 	Header header = *( const Header* )inputStream.Buffer();
-	bool byteSwap = ( header.byteSwap == BYTE_SWAP_CONSTANT ) ? true : false;
+	bool byteSwap = ( header.byteSwap != BYTE_SWAP_CONSTANT ) ? true : false;
 	if( byteSwap )
 	{
 		header.byteSwap = wxINT32_SWAP_ALWAYS( header.byteSwap );
@@ -63,24 +63,39 @@ bool Socket::ReadPacket( Packet& packet )
 }
 
 //=====================================================================================
-void Socket::Advance( void )
+bool Socket::Advance( void )
 {
+	if( !socket->IsConnected() )
+		return false;
+
 	wxInt8 buffer[ 1024 ];
 	wxInt32 size = sizeof( buffer ) / sizeof( wxInt8 );
 	socket->Read( buffer, size );
 	if( !socket->Error() )
 	{
 		size = ( signed )socket->LastReadCount();
-		inputStream.Append( buffer, size );
+		if( size > 0 )
+			inputStream.Append( buffer, size );
 	}
 
 	size = outputStream.BufferSize();
-	socket->Write( outputStream.Buffer(), size );
-	if( !socket->Error() )
+	if( size > 0 )
 	{
-		size = ( signed )socket->LastWriteCount();
-		outputStream.Shift( size );
+		socket->Write( outputStream.Buffer(), size );
+		if( !socket->Error() )
+		{
+			size = ( signed )socket->LastWriteCount();
+			outputStream.Shift( size );
+		}
 	}
+
+	return true;
+}
+
+//=====================================================================================
+bool Socket::IsConnected( void )
+{
+	return socket->IsConnected();
 }
 
 //=====================================================================================
@@ -103,7 +118,7 @@ void Socket::Stream::Append( const wxInt8* data, wxInt32 size )
 	wxInt32 room = bufferAllocSize - bufferSize;
 	if( room < size )
 	{
-		bufferAllocSize += room;
+		bufferAllocSize += size - room;
 		wxInt8* newBuffer = new wxInt8[ bufferAllocSize ];
 		memcpy( newBuffer, buffer, bufferSize );
 		delete[] buffer;
@@ -150,8 +165,20 @@ Socket::Packet::Packet( void )
 //=====================================================================================
 Socket::Packet::~Packet( void )
 {
+	Reset();
+}
+
+//=====================================================================================
+void Socket::Packet::Reset( void )
+{
 	if( ownsMemory )
 		delete[] data;
+
+	type = 0;
+	data = 0;
+	size = 0;
+	byteSwap = false;
+	ownsMemory = false;
 }
 
 //=====================================================================================
@@ -167,7 +194,7 @@ wxInt32 Socket::Packet::GetType( void ) const
 }
 
 //=====================================================================================
-void Socket::Packet::SetData( wxInt8* data )
+void Socket::Packet::SetData( const wxInt8* data )
 {
 	this->data = data;
 }

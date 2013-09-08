@@ -35,6 +35,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_JoinGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HostGame );
 	Bind( wxEVT_TIMER, &Frame::OnTimer, this, ID_Timer );
+	Bind( wxEVT_CLOSE_WINDOW, &Frame::OnClose, this );
 
 	canvas = new Canvas( this );
 
@@ -53,17 +54,115 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 //=====================================================================================
 void Frame::OnHostGame( wxCommandEvent& event )
 {
+	Server* server = wxGetApp().GetServer();
+	if( server )
+		return;
+
+	// The order of this array matches the enum in the Board class.
+	wxArrayString colorChoices;
+	colorChoices.Add( "Red" );
+	colorChoices.Add( "Green" );
+	colorChoices.Add( "Blue" );
+	colorChoices.Add( "Yellow" );
+	colorChoices.Add( "Magenta" );
+	colorChoices.Add( "Cyan" );
+
+	wxMultiChoiceDialog multiChoiceDialog( this, wxT( "Who will particpate in this game?" ), wxT( "Choose Participants" ), colorChoices );
+	if( wxID_OK != multiChoiceDialog.ShowModal() )
+		return;
+
+	wxArrayInt selections = multiChoiceDialog.GetSelections();
+	if( selections.Count() < 2 )
+		return;
+
+	int participants = 0;
+	for( wxArrayInt::iterator iter = selections.begin(); iter != selections.end(); iter++ )
+	{
+		int color = *iter + 1;
+		participants |= 1 << color;
+	}
+
+	wxScopedPtr< Server > serverPtr;
+	serverPtr.reset( new Server( participants ) );
+
+	unsigned short port = ( unsigned short )wxGetNumberFromUser( wxT( "On what port should the server listen?" ), wxT( "Port:" ), wxT( "Choose Port" ), 3000, 3000, 5000, this );
+	if( !serverPtr->Initialize( port ) )
+		return;
+
+	server = serverPtr.release();
+	wxGetApp().SetServer( server );
 }
 
 //=====================================================================================
 void Frame::OnJoinGame( wxCommandEvent& event )
 {
+	Client* client = wxGetApp().GetClient();
+	if( client )
+		return;
+
+	wxString addressString = wxT( "127.0.0.1:3000" );
+	wxTextEntryDialog textEntryDialog( this, wxT( "Please enter the address of the host with port number." ), wxT( "Enter Address Of Host" ), addressString );
+	if( wxID_OK != textEntryDialog.ShowModal() )
+		return;
+
+	wxStringTokenizer stringTokenizer( addressString, ":" );
+	wxString ipAddressString, portString;
+	if( !stringTokenizer.HasMoreTokens() )
+		return;
+	ipAddressString = stringTokenizer.GetNextToken();
+	if( !stringTokenizer.HasMoreTokens() )
+		return;
+	portString = stringTokenizer.GetNextToken();
+
+	unsigned long port;
+	if( !portString.ToULong( &port ) )
+		return;
+
+	wxIPV4address address;
+	if( !address.Hostname( ipAddressString ) )
+		return;
+	address.Service( port );
+
+	wxArrayString typeChoices;
+	typeChoices.Add( "Human" );
+	typeChoices.Add( "Computer" );
+	wxSingleChoiceDialog singleChoiceDialog( this, wxT( "Will this be a human or computer client?" ), wxT( "Choose Client Type" ), typeChoices );
+	if( wxID_OK != singleChoiceDialog.ShowModal() )
+		return;
+
+	Client::Type clientType = Client::HUMAN;
+	if( singleChoiceDialog.GetStringSelection() == wxT( "Computer" ) )
+		clientType = Client::COMPUTER;
+
+	wxScopedPtr< Client > clientPtr;
+	clientPtr.reset( new Client( clientType ) );
+
+	if( !clientPtr->Connect( address ) )
+		return;
+
+	client = clientPtr.release();
+	wxGetApp().SetClient( client );
 }
 
 //=====================================================================================
 void Frame::OnExit( wxCommandEvent& event )
 {
 	Close( true );
+}
+
+//=====================================================================================
+void Frame::OnClose( wxCloseEvent& event )
+{
+	Server* server = wxGetApp().GetServer();
+	server->Finalize();
+	delete server;
+	wxGetApp().SetServer(0);
+
+	Client* client = wxGetApp().GetClient();
+	delete client;
+	wxGetApp().SetClient(0);
+
+	event.Skip();
 }
 
 //=====================================================================================
@@ -94,11 +193,24 @@ void Frame::OnTimer( wxTimerEvent& event )
 {
 	Server* server = wxGetApp().GetServer();
 	if( server )
-		server->Run();
+	{
+		if( !server->Run() )
+		{
+			server->Finalize();
+			delete server;
+			wxGetApp().SetServer(0);
+		}
+	}
 
 	Client* client = wxGetApp().GetClient();
 	if( client )
-		client->Run();
+	{
+		if( !client->Run() )
+		{
+			delete client;
+			wxGetApp().SetClient(0);
+		}
+	}
 }
 
 // ChiCheFrame.cpp

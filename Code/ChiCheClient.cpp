@@ -16,17 +16,91 @@ Client::Client( Type type )
 //=====================================================================================
 Client::~Client( void )
 {
+	delete socket;
+	delete board;
 }
 
 //=====================================================================================
 bool Client::Connect( const wxIPV4address& address )
 {
+	wxSocketClient* socketClient = new wxSocketClient( wxSOCKET_NOWAIT );
+	socket = new Socket( socketClient );
+	
+	socketClient->Connect( address, false );
+
+	wxString hostName = address.Hostname();
+	int tryCount = 0;
+	int maxTries = 10;
+	wxString progressMessage = wxT( "Connecting..." );
+	wxGenericProgressDialog progressDialog( wxT( "Connecting to host: " ) + hostName, progressMessage, maxTries, wxGetApp().GetFrame(), wxPD_APP_MODAL | wxPD_CAN_ABORT );
+	while( tryCount < maxTries && !socketClient->WaitOnConnect( 1, 0 ) )
+	{
+		tryCount++;
+		if( tryCount == maxTries )
+			progressMessage = wxT( "Connection attempt failed!" );
+		bool cancel = !progressDialog.Update( tryCount, progressMessage );
+		if( cancel )
+			break;
+	}
+
+	if( !socketClient->IsConnected() )
+		return false;
+
 	return true;
 }
 
 //=====================================================================================
 bool Client::Run( void )
 {
+	if( !socket->Advance() )
+		return false;
+
+	Socket::Packet inPacket;
+	if( socket->ReadPacket( inPacket ) )
+	{
+		switch( inPacket.GetType() )
+		{
+			case Server::GAME_STATE:
+			{
+				if( !board || !board->SetGameState( inPacket ) )
+					return false;
+				break;
+			}
+			case Server::GAME_MOVE:
+			{
+				wxInt32 sourceID, destinationID;
+				if( board->UnpackMove( inPacket, sourceID, destinationID ) )
+				{
+					Board::MoveSequence moveSequence;
+					if( board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
+						board->ApplyMoveSequence( moveSequence );
+					else
+						return false;
+				}
+				break;
+			}
+			case Server::ASSIGN_COLOR:
+			{
+				wxInt32 data = *( wxInt32* )inPacket.GetData();
+				if( inPacket.ByteSwap() )
+					data = wxINT32_SWAP_ALWAYS( data );
+				color = data;
+				break;
+			}
+			case Server::PARTICIPANTS:
+			{
+				if( board )
+					return false;
+				wxInt32 data = *( wxInt32* )inPacket.GetData();
+				if( inPacket.ByteSwap() )
+					data = wxINT32_SWAP_ALWAYS( data );
+				int participants = data;
+				board = new Board( participants, true );
+				break;
+			}
+		}
+	}
+
 	return true;
 }
 

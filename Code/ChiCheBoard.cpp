@@ -35,12 +35,13 @@ Board::Board( int participants, bool animate )
 	whosTurn = NONE;
 	NextTurn();
 
-	GenerateGraph( animate );
+	CreateGraph( animate );
 }
 
 //=====================================================================================
 Board::~Board( void )
 {
+	DestroyGraph();
 }
 
 //=====================================================================================
@@ -68,6 +69,20 @@ bool Board::IsParticipant( int color )
 }
 
 //=====================================================================================
+bool Board::IsParticipantsTurn( int color )
+{
+	if( color == whosTurn )
+		return true;
+	return false;
+}
+
+//=====================================================================================
+int Board::GetParticipants( void )
+{
+	return participants;
+}
+
+//=====================================================================================
 /*static*/ int Board::ZoneTarget( int color )
 {
 	// This is baed on the layout map!
@@ -75,7 +90,39 @@ bool Board::IsParticipant( int color )
 }
 
 //=====================================================================================
-void Board::GenerateGraph( bool animate )
+/*static*/ bool Board::UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID )
+{
+	if( packet.GetType() != Client::GAME_MOVE && packet.GetType() != Server::GAME_MOVE )
+		return false;
+		
+	if( packet.GetSize() != 2 * sizeof( wxInt32 ) )
+		return false;
+	
+	wxInt32* data = ( wxInt32* )packet.GetData();
+	sourceID = data[0];
+	destinationID = data[1];
+	if( packet.ByteSwap() )
+	{
+		sourceID = wxINT32_SWAP_ALWAYS( sourceID );
+		destinationID = wxINT32_SWAP_ALWAYS( destinationID );
+	}
+
+	return true;
+}
+
+//=====================================================================================
+int Board::OccupantAtLocation( int locationID )
+{
+	LocationMap::iterator iter = locationMap.find( locationID );
+	if( iter == locationMap.end() )
+		return -1;
+
+	Location* location = iter->second;
+	return location->GetOccupant();
+}
+
+//=====================================================================================
+void Board::CreateGraph( bool animate )
 {
 	int locationID = 0;
 	Location* connectionMap[ LAYOUT_SIZE ][ LAYOUT_SIZE ];
@@ -133,6 +180,78 @@ void Board::GenerateGraph( bool animate )
 	{
 		//...
 	}
+}
+
+//=====================================================================================
+void Board::DestroyGraph( void )
+{
+	while( locationMap.size() > 0 )
+	{
+		LocationMap::iterator iter = locationMap.begin();
+		Location* location = iter->second;
+		delete location;
+		locationMap.erase( iter );
+	}
+}
+
+//=====================================================================================
+bool Board::GetGameState( Socket::Packet& outPacket )
+{
+	outPacket.Reset();
+
+	wxInt32 size = locationMap.size() * 2 + 1;
+	wxInt32* locationDataArray = new wxInt32[ size ];
+	int index = 0;
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
+	{
+		wxInt32* locationData = &locationDataArray[ index++ * 2 ];
+		Location* location = iter->second;
+		locationData[0] = iter->first;
+		locationData[1] = location->GetOccupant();
+	}
+
+	locationDataArray[ size - 1 ] = whosTurn;
+
+	outPacket.SetType( Server::GAME_STATE );
+	outPacket.SetData( ( wxInt8* )locationDataArray );
+	outPacket.SetSize( size * sizeof( wxInt32 ) );
+	outPacket.OwnsMemory( true );
+
+	return true;
+}
+
+//=====================================================================================
+bool Board::SetGameState( const Socket::Packet& inPacket )
+{
+	if( inPacket.GetType() != Server::GAME_STATE )
+		return false;
+
+	wxInt32 size = locationMap.size() * 2 + 1;
+	if( inPacket.GetSize() != size * sizeof( wxInt32 ) )
+		return false;
+
+	const wxInt32* locationDataArray = ( const int* )inPacket.GetData();
+	for( int index = 0; index < size - 1; index += 2 )
+	{
+		const wxInt32* locationData = &locationDataArray[ index ];
+		wxInt32 locationID = locationData[0];
+		wxInt32 occupant = locationData[1];
+		if( inPacket.ByteSwap() )
+		{
+			locationID = wxINT32_SWAP_ALWAYS( locationID );
+			occupant = wxINT32_SWAP_ALWAYS( occupant );
+		}
+		LocationMap::iterator iter = locationMap.find( locationID );
+		if( iter == locationMap.end() )
+			return false;		// We might be leaving the game in a corrupted state!
+
+		Location* location = iter->second;
+		location->SetOccupant( occupant );
+	}
+
+	whosTurn = locationDataArray[ size - 1 ];
+
+	return true;
 }
 
 //=====================================================================================
@@ -246,13 +365,14 @@ void Board::Location::CalcPositionOfAdjacencies( const c3ga::vectorE3GA& positio
 		if( !adjLocation )
 			continue;
 		
-		if( visitationMap.end() == visitationMap.find( adjLocation->locationID ) )
+		if( visitationMap.end() != visitationMap.find( adjLocation->locationID ) )
 			continue;
 
 		double angle = double(i) / double( ADJACENCIES ) * 2.0 * 3.1415926536;
 		double radius = double( LOCATION_EDGE_LENGTH );
 		c3ga::vectorE3GA adjPosition;
 		adjPosition.set( c3ga::vectorE3GA::coord_e1_e2_e3, radius * cos( angle ), 0.0, radius * sin( angle ) );
+		adjPosition = position + adjPosition;
 		adjLocation->CalcPositionOfAdjacencies( adjPosition, visitationMap );
 	}
 }

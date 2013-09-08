@@ -10,6 +10,11 @@
 #include <wx/timer.h>
 #include <wx/sizer.h>
 #include <wx/glcanvas.h>
+#include <wx/choicdlg.h>
+#include <wx/numdlg.h>
+#include <wx/textdlg.h>
+#include <wx/tokenzr.h>
+#include <wx/progdlg.h>
 
 // OpenGL:
 #include <GL/gl.h>
@@ -27,20 +32,20 @@ namespace ChiChe
 {
 	class App;
 	class Frame;
+	class Socket;
 	class Board;
 	class Client;
 	class Server;
 	class Canvas;
-	class Socket;
 }
 
 // ChiChe:
 #include "ChiCheApp.h"
 #include "ChiCheFrame.h"
+#include "ChiCheSocket.h"
 #include "ChiCheBoard.h"
 #include "ChiCheClient.h"
 #include "ChiCheServer.h"
 #include "ChiCheCanvas.h"
-#include "ChiCheSocket.h"
 
 // ChiChe.h

@@ -46,8 +46,20 @@ namespace ChiChe
 		// Which zone are pieces of the given color trying to get to?
 		static int ZoneTarget( int color );
 
+		// Grab a game move, if any, found in the given packet.
+		static bool UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID );
+
 		// Is the given color particpating in the game?
 		bool IsParticipant( int color );
+
+		// Is it the given participant's turn?
+		bool IsParticipantsTurn( int color );
+
+		// Get the participants bit field.
+		int GetParticipants( void );
+
+		// Return the occupant at the given location.
+		int OccupantAtLocation( int locationID );
 
 		// Return the winning piece color, if any.
 		int DetermineWinner( void );
@@ -70,6 +82,12 @@ namespace ChiChe
 
 		// Change the state of the game board by the given move sequence.  This will also change who's turn it is.
 		bool ApplyMoveSequence( const MoveSequence& moveSequence );
+
+		// Package the state of the entire game into a packet.
+		bool GetGameState( Socket::Packet& outPacket );
+
+		// Internalize the entire state of the game that is in the given packet.
+		bool SetGameState( const Socket::Packet& inPacket );
 
 		//=====================================================================================
 		// Each of these represents a location on the game board.
@@ -124,7 +142,8 @@ namespace ChiChe
 
 	private:
 
-		void GenerateGraph( bool animate );
+		void CreateGraph( bool animate );
+		void DestroyGraph( void );
 
 		// These are internal, because only the application of a move causes us to change who's turn it is.
 		void NextTurn( void );

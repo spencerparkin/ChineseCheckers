@@ -7,6 +7,11 @@ namespace ChiChe
 	{
 	public:
 
+		enum PacketType
+		{
+			GAME_MOVE,
+		};
+
 		enum Type
 		{
 			HUMAN,

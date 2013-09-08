@@ -7,6 +7,14 @@ namespace ChiChe
 	{
 	public:
 
+		enum PacketType
+		{
+			ASSIGN_COLOR,
+			PARTICIPANTS,
+			GAME_MOVE,
+			GAME_STATE,
+		};
+
 		Server( int participants );
 		~Server( void );
 
@@ -19,16 +27,28 @@ namespace ChiChe
 		//=====================================================================================
 		class Participant
 		{
-		public:
+			friend class Server;
 
+		public:
+			Participant( wxSocketBase* connectedSocket, int color );
+			~Participant( void );
+
+		private:
 			Socket* socket;
 			int color;
 		};
 
 		typedef std::list< Participant* > ParticipantList;
 
+		int AssignColorToNewParticipant( void );
+		bool ColorAlreadyAssigned( int color );
+
+		bool ServiceClient( Participant* participant );
+
+		void BroadcastPacket( Socket::Packet& outPacket );
+
 		Board* board;
-		wxSocketServer* socket;
+		wxSocketServer* socketServer;
 		ParticipantList participantList;
 	};
 }
