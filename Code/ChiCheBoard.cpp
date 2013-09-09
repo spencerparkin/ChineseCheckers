@@ -355,6 +355,10 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 }
 
 //=====================================================================================
+// Hmmm.  A smarter AI player would probably try to plan their moves out.  This routine
+// only looks at the current state of the board and then tries to come up with a good
+// move.  There is no attempt to try to do certain moves to setup for better moves or
+// to anticipate any opponent's move in order to block their progress across the board.
 bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinationID )
 {
 	return false;
