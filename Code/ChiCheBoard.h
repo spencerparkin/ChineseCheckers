@@ -77,7 +77,7 @@ namespace ChiChe
 		int DetermineWinner( void );
 
 		// Render the board for display or selection.
-		void Render( GLenum renderMode );
+		void Render( GLenum renderMode, int highlightLocationID );
 
 		// Advance the position of each board piece by one frame's worth of animation.
 		void Animate( double frameRate );
@@ -107,7 +107,7 @@ namespace ChiChe
 			Location( int occupant, int zone, int locationID );
 			~Location( void );
 
-			void Render( GLenum renderMode );
+			void Render( GLenum renderMode, bool highlight );
 
 			void CalcPositionOfAdjacencies( const c3ga::vectorE3GA& position, VisitationMap& visitationMap );
 
@@ -150,16 +150,18 @@ namespace ChiChe
 
 			enum
 			{
-				ROTATION_RATE = 120,	// This is in units of degrees per second.
+				ROTATION_RATE = 220,	// This is in units of degrees per second.
 			};
 
 			Piece( int locationID );
 			~Piece( void );
 
-			void Render( Board* board );
+			void Render( Board* board, bool highlight );
 			void Animate( double frameRate );
 
 			void ResetAnimation( const MoveSequence& moveSequence );
+
+			int GetLocationID( void );
 
 		private:
 
@@ -169,8 +171,11 @@ namespace ChiChe
 
 	private:
 
-		void CreateGraph( bool animate );
+		void CreateGraph( void );
 		void DestroyGraph( void );
+
+		void CreatePieces( void );
+		void DestroyPieces( void );
 
 		// These are internal, because only the application of a move causes us to change who's turn it is.
 		void NextTurn( void );
@@ -182,6 +187,7 @@ namespace ChiChe
 		int whosTurn;
 		LocationMap locationMap;
 		PieceList pieceList;
+		bool animate;
 	};
 }
 

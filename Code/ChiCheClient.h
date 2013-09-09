@@ -25,6 +25,7 @@ namespace ChiChe
 		bool Run( void );
 		bool Render( GLenum renderMode );
 		bool Animate( double frameRate );
+		bool ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hitCount );
 
 	private:
 
@@ -34,6 +35,7 @@ namespace ChiChe
 		Board* board;
 		Type type;
 		int color;
+		int selectedLocationID;
 	};
 }
 

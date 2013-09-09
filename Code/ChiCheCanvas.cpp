@@ -14,6 +14,9 @@ Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList
 	mousePos.x = 0;
 	mousePos.y = 0;
 
+	hitBuffer = 0;
+	hitBufferSize = 0;
+
 	Bind( wxEVT_PAINT, &Canvas::OnPaint, this );
 	Bind( wxEVT_SIZE, &Canvas::OnSize, this );
 	Bind( wxEVT_MOUSEWHEEL, &Canvas::OnMouseWheel, this );
@@ -59,16 +62,52 @@ void Canvas::PreRender( GLenum renderMode )
 	BindContext();
 
 	glClearColor( 0.f, 0.f, 0.f, 1.f );
+	glEnable( GL_DEPTH_TEST );
+	glEnable( GL_LINE_SMOOTH );
+	glEnable( GL_BLEND );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	glHint( GL_LINE_SMOOTH_HINT, GL_DONT_CARE );
+	glShadeModel( GL_SMOOTH );
+
+	if( renderMode == GL_SELECT )
+	{
+		hitBufferSize = 512;
+		hitBuffer = new unsigned int[ hitBufferSize ];
+		glSelectBuffer( hitBufferSize, hitBuffer );
+
+		glRenderMode( GL_SELECT );
+		glInitNames();
+	}
+
 	glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT );
 
-	camera.LoadViewingMatrices();
+	wxPoint* pickingPoint = 0;
+	if( renderMode == GL_SELECT )
+		pickingPoint = &mousePos;
+	camera.LoadViewingMatrices( pickingPoint );
 }
 
 //=====================================================================================
 void Canvas::PostRender( GLenum renderMode )
 {
 	glFlush();
-	SwapBuffers();
+
+	if( renderMode == GL_SELECT )
+	{
+		int hitCount = glRenderMode( GL_RENDER );
+
+		Client* client = wxGetApp().GetClient();
+		if( client )
+			client->ProcessHitList( hitBuffer, hitBufferSize, hitCount );
+
+		delete[] hitBuffer;
+		hitBuffer = 0;
+		hitBufferSize = 0;
+	}
+	else if( renderMode == GL_RENDER )
+	{
+		SwapBuffers();
+	}
 }
 
 //=====================================================================================
@@ -105,7 +144,15 @@ void Canvas::OnMouseLeftDown( wxMouseEvent& event )
 //=====================================================================================
 void Canvas::OnMouseRightDown( wxMouseEvent& event )
 {
-	//...
+	mousePos = event.GetPosition();
+
+	Client* client = wxGetApp().GetClient();
+	if( client )
+	{
+		PreRender( GL_SELECT );
+		client->Render( GL_SELECT );
+		PostRender( GL_SELECT );
+	}
 }
 
 //=====================================================================================
@@ -121,7 +168,7 @@ void Canvas::OnMouseMotion( wxMouseEvent& event )
 		c3ga::vectorE3GA xAxis, yAxis, zAxis;
 		camera.CalcPanFrame( xAxis, yAxis, zAxis );
 
-		double unitsPerPixel = 0.1;
+		double unitsPerPixel = 0.2;
 
 		c3ga::vectorE3GA delta;
 		delta.set( c3ga::vectorE3GA::coord_e1_e2_e3, unitsPerPixel * -double( mouseDelta.x ), unitsPerPixel * double( mouseDelta.y ), 0.0 );
@@ -141,7 +188,7 @@ void Canvas::OnMouseMotion( wxMouseEvent& event )
 Canvas::Camera::Camera( void )
 {
 	focus.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
-	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, -40.0 );
+	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 20.0, -50.0 );
 	up.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 1.0, 0.0 );
 	
 	foviAngle = 60.0;
@@ -196,10 +243,20 @@ void Canvas::Camera::CalcPanFrame( c3ga::vectorE3GA& xAxis, c3ga::vectorE3GA& yA
 }
 
 //=====================================================================================
-void Canvas::Camera::LoadViewingMatrices( void )
+void Canvas::Camera::LoadViewingMatrices( wxPoint* pickingPoint /*= 0*/ )
 {
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
+	if( pickingPoint )
+	{
+		GLint viewport[4];
+		glGetIntegerv( GL_VIEWPORT, viewport );
+		GLdouble x = pickingPoint->x;
+		GLdouble y = GLdouble( viewport[3] ) - GLdouble( pickingPoint->y );
+		GLdouble w = 2.0;
+		GLdouble h = 2.0;
+		gluPickMatrix( x, y, w, h, viewport );
+	}
 	gluPerspective( foviAngle, aspectRatio, 1.0, 1000.0 );
 
 	glMatrixMode( GL_MODELVIEW );

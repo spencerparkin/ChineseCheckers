@@ -27,7 +27,7 @@ namespace ChiChe
 			void SetAspectRatio( double aspectRatio );
 			double GetAspectRatio( void );
 
-			void LoadViewingMatrices( void );
+			void LoadViewingMatrices( wxPoint* pickingPoint = 0 );
 
 			void Zoom( double zoomPercentage, double minimumFocalLength, double maximumFocalLength );
 			double FocalLength( void );
@@ -64,6 +64,8 @@ namespace ChiChe
 		wxGLContext* context;
 		Camera camera;
 		wxPoint mousePos;
+		unsigned int* hitBuffer;
+		int hitBufferSize;
 	};
 }
 

@@ -8,9 +8,9 @@ using namespace ChiChe;
 int Board::layoutMap[ LAYOUT_SIZE ][ LAYOUT_SIZE ] =
 {
 	// These entries correspond to the enum in the class definition!
-	{ -1, -1, -1, -1,  1, -1, -1, -1, -1  -1, -1, -1, -1, -1, -1, -1, -1 },
-	{ -1, -1, -1, -1,  1,  1, -1, -1, -1  -1, -1, -1, -1, -1, -1, -1, -1 },
-	{ -1, -1, -1, -1,  1,  1,  1, -1, -1  -1, -1, -1, -1, -1, -1, -1, -1 },
+	{ -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+	{ -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+	{ -1, -1, -1, -1,  1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
 	{ -1, -1, -1, -1,  1,  1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
 	{  2,  2,  2,  2,  0,  0,  0,  0,  0,  6,  6,  6,  6, -1, -1, -1, -1 },
 	{ -1,  2,  2,  2,  0,  0,  0,  0,  0,  0,  6,  6,  6, -1, -1, -1, -1 },
@@ -31,11 +31,12 @@ int Board::layoutMap[ LAYOUT_SIZE ][ LAYOUT_SIZE ] =
 Board::Board( int participants, bool animate )
 {
 	this->participants = participants;
+	this->animate = animate;
 
 	whosTurn = NONE;
 	NextTurn();
 
-	CreateGraph( animate );
+	CreateGraph();
 }
 
 //=====================================================================================
@@ -156,7 +157,7 @@ bool Board::PositionAtLocation( int locationID, c3ga::vectorE3GA& position )
 }
 
 //=====================================================================================
-void Board::CreateGraph( bool animate )
+void Board::CreateGraph( void )
 {
 	int locationID = 0;
 	Location* connectionMap[ LAYOUT_SIZE ][ LAYOUT_SIZE ];
@@ -211,6 +212,29 @@ void Board::CreateGraph( bool animate )
 
 	// If the board will be animated/rendered, create the pieces that animate.
 	if( animate )
+		CreatePieces();
+}
+
+//=====================================================================================
+void Board::DestroyGraph( void )
+{
+	// The pieces must be destroyed before the locations.
+	if( animate )
+		DestroyPieces();
+
+	while( locationMap.size() > 0 )
+	{
+		LocationMap::iterator iter = locationMap.begin();
+		Location* location = iter->second;
+		delete location;
+		locationMap.erase( iter );
+	}
+}
+
+//=====================================================================================
+void Board::CreatePieces( void )
+{
+	if( pieceList.size() == 0 )
 	{
 		for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
 		{
@@ -227,20 +251,15 @@ void Board::CreateGraph( bool animate )
 }
 
 //=====================================================================================
-void Board::DestroyGraph( void )
+void Board::DestroyPieces( void )
 {
-	while( locationMap.size() > 0 )
-	{
-		LocationMap::iterator iter = locationMap.begin();
-		Location* location = iter->second;
-		delete location;
-		locationMap.erase( iter );
-	}
-
 	while( pieceList.size() > 0 )
 	{
 		PieceList::iterator iter = pieceList.begin();
 		Piece* piece = *iter;
+		int locationID = piece->GetLocationID();
+		Location* location = locationMap[ locationID ];
+		location->SetPiece(0);
 		delete piece;
 		pieceList.erase( iter );
 	}
@@ -282,6 +301,9 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 	if( inPacket.GetSize() != size * sizeof( wxInt32 ) )
 		return false;
 
+	if( animate )
+		DestroyPieces();
+
 	const wxInt32* locationDataArray = ( const int* )inPacket.GetData();
 	for( int index = 0; index < size - 1; index += 2 )
 	{
@@ -300,6 +322,9 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 		Location* location = iter->second;
 		location->SetOccupant( occupant );
 	}
+
+	if( animate )
+		CreatePieces();
 
 	whosTurn = locationDataArray[ size - 1 ];
 
@@ -342,25 +367,55 @@ int Board::DetermineWinner( void )
 		}
 	}
 
-	return -1;
+	return NONE;
 }
 
 //=====================================================================================
-void Board::Render( GLenum renderMode )
+void Board::Render( GLenum renderMode, int highlightLocationID )
 {
+	if( renderMode == GL_SELECT )
+		glPushName( -1 );
+
 	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
 	{
 		Location* location = iter->second;
-		location->Render( renderMode );
+		bool highlight = false;
+		if( location->GetLocationID() == highlightLocationID )
+			highlight = true;
+		location->Render( renderMode, highlight );
 	}
 
 	if( renderMode == GL_RENDER )
 	{
+		glEnable( GL_LIGHTING );
+		glEnable( GL_LIGHT0 );
+		glLightModelf( GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE );
+		glLightModelf( GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE );
+
+		GLfloat lightPosition[] = { 10.f, 10.f, 10.f, 0.f };
+		GLfloat lightAmbient[] = { 0.1f, 0.1f, 0.1f, 1.f };
+		GLfloat lightSpecular[] = { 1.f, 1.f, 1.f, 1.f };
+		GLfloat lightDiffuse[] = { 1.f, 1.f, 1.f, 1.f };
+		glLightfv( GL_LIGHT0, GL_POSITION, lightPosition );
+		glLightfv( GL_LIGHT0, GL_AMBIENT, lightAmbient );
+		glLightfv( GL_LIGHT0, GL_SPECULAR, lightSpecular );
+		glLightfv( GL_LIGHT0, GL_DIFFUSE, lightDiffuse );
+
+		glEnable( GL_CULL_FACE );
+		glCullFace( GL_BACK );
+		glFrontFace( GL_CCW );
+
 		for( PieceList::iterator iter = pieceList.begin(); iter != pieceList.end(); iter++ )
 		{
 			Piece* piece = *iter;
-			piece->Render( this );
+			bool highlight = false;
+			if( piece->GetLocationID() == highlightLocationID )
+				highlight = true;
+			piece->Render( this, highlight );
 		}
+
+		glDisable( GL_CULL_FACE );
+		glDisable( GL_LIGHTING );
 	}
 }
 
@@ -378,6 +433,25 @@ void Board::Animate( double frameRate )
 int Board::FindSelectedLocation( unsigned int* hitBuffer, int hitBufferSize, int hitCount )
 {
 	int locationID = -1;
+
+	// If the hit-count is -1 (indicating overflow), we don't process anything.
+	unsigned int* hitRecord = hitBuffer;
+	float smallestZ;
+	for( int i = 0; i < hitCount; i++ )
+	{
+		unsigned int nameCount = hitRecord[0];
+		float minZ = float( hitRecord[1] ) / float( 0x7FFFFFFFF );
+		if( nameCount == 1 )
+		{
+			if( locationID == -1 || minZ < smallestZ )
+			{
+				smallestZ = minZ;
+				locationID = ( signed )hitRecord[3];
+			}
+		}
+		hitRecord += 3 + nameCount;
+	}
+
 	return locationID;
 }
 
@@ -627,14 +701,13 @@ void Board::Location::GetRenderColor( c3ga::vectorE3GA& renderColor )
 }
 
 //=====================================================================================
-void Board::Location::Render( GLenum renderMode )
+void Board::Location::Render( GLenum renderMode, bool highlight )
 {
 	if( renderMode == GL_RENDER )
 	{
 		c3ga::vectorE3GA renderColor;
 		GetRenderColor( renderColor );
 
-		glLineWidth( 1.5f );
 		glBegin( GL_LINES );
 
 		for( int i = 0; i < ADJACENCIES; i++ )
@@ -661,7 +734,18 @@ void Board::Location::Render( GLenum renderMode )
 	else if( renderMode == GL_SELECT )
 	{
 		// In this case, we want to render a hot-spot hexagon.
-		
+		glLoadName( locationID );
+		glBegin( GL_POLYGON );
+		glColor3f( 1.f, 1.f, 1.f );
+		double radius = double( LOCATION_EDGE_LENGTH ) * 0.5;
+		for( int i = 0; i < ADJACENCIES; i++ )
+		{
+			double angle = double(i) / double( ADJACENCIES ) * 2.0 * M_PI;
+			double x = position.get_e1() + radius * cos( angle );
+			double z = position.get_e3() + radius * sin( angle );
+			glVertex3f( x, 0.f, z );
+		}
+		glEnd();
 	}
 }
 
@@ -680,13 +764,23 @@ Board::Piece::~Piece( void )
 }
 
 //=====================================================================================
-void Board::Piece::Render( Board* board )
+int Board::Piece::GetLocationID( void )
+{
+	if( moveSequence.size() == 0 )
+		return -1;
+
+	int locationID = moveSequence.back();
+	return locationID;
+}
+
+//=====================================================================================
+void Board::Piece::Render( Board* board, bool highlight )
 {
 	// This should never be the case, but protect against it anyway.
 	if( moveSequence.size() == 0 )
 		return;
 
-	int locationID = moveSequence.back();
+	int locationID = GetLocationID();
 	int occupant = board->OccupantAtLocation( locationID );
 
 	c3ga::vectorE3GA piecePosition;
@@ -706,17 +800,44 @@ void Board::Piece::Render( Board* board )
 		c3ga::rotorE3GA rotor = c3ga::exp( c3ga::gp( blade, 0.5 * pivotAngle ) );
 
 		c3ga::vectorE3GA midPoint = c3ga::gp( prevPosition, 0.5 ) + c3ga::gp( nextPosition, 0.5 );
-		c3ga::vectorE3GA pivotVector = nextPosition - midPoint;
+		c3ga::vectorE3GA pivotVector = prevPosition - midPoint;
 		pivotVector = c3ga::applyUnitVersor( rotor, pivotVector );
 		piecePosition = midPoint + pivotVector;
 	}
 	
 	c3ga::vectorE3GA renderColor;
 	RenderColor( occupant, renderColor );
-	glColor3f( renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3() );
+	
+	if( glIsEnabled( GL_LIGHTING ) )
+	{
+		GLfloat specularity[] = { 1.f, 1.f, 1.f, 1.f };
+		GLfloat shininess[] = { 50.f };
+		GLfloat ambientDiffuse[] = { renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3(), 1.f };
+		GLfloat emissive[] = { 0.f, 0.f, 0.f, 0.f };
+
+		if( highlight )
+		{
+			emissive[0] = 0.5f;
+			emissive[1] = 0.5f;
+			emissive[2] = 0.5f;
+			emissive[3] = 1.f;
+		}
+
+		glMaterialfv( GL_FRONT, GL_SPECULAR, specularity );
+		glMaterialfv( GL_FRONT, GL_SHININESS, shininess );
+		glMaterialfv( GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ambientDiffuse );
+		glMaterialfv( GL_FRONT, GL_EMISSION, emissive );
+	}
+	else
+	{
+		if( highlight )
+			glColor3f( 1.f, 1.f, 1.f );
+		else
+			glColor3f( renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3() );
+	}
 
 	double radius = double( LOCATION_EDGE_LENGTH ) * 0.4;
-	Sphere::Render( piecePosition, radius, 1 );
+	Sphere::Render( piecePosition, radius );
 }
 
 //=====================================================================================

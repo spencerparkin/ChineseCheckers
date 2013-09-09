@@ -11,6 +11,7 @@ Client::Client( Type type )
 	socket = 0;
 	board = 0;
 	color = Board::NONE;
+	selectedLocationID = -1;
 }
 
 //=====================================================================================
@@ -83,6 +84,13 @@ bool Client::Run( void )
 					if( !board->ApplyMoveSequence( moveSequence ) )
 						return false;
 					TellUserWhosTurnItIs();
+					int winner = board->DetermineWinner();
+					if( winner != Board::NONE )
+					{
+						wxString winnerText;
+						Board::ParticipantText( winner, winnerText );
+						wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+					}
 				}
 				break;
 			}
@@ -112,20 +120,62 @@ bool Client::Run( void )
 }
 
 //=====================================================================================
+bool Client::ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hitCount )
+{
+	if( !board )
+		return false;
+
+	int locationID = board->FindSelectedLocation( hitBuffer, hitBufferSize, hitCount );
+	
+	if( selectedLocationID >= 0 && locationID >= 0 && selectedLocationID != locationID )
+	{
+		Board::MoveSequence moveSequence;
+		if( board->FindMoveSequence( selectedLocationID, locationID, moveSequence ) )
+		{
+			wxInt32 data[2];
+			data[0] = selectedLocationID;
+			data[1] = locationID;
+
+			Socket::Packet outPacket;
+			outPacket.SetType( GAME_MOVE );
+			outPacket.SetData( ( wxInt8* )data );
+			outPacket.SetSize( sizeof( wxInt32 ) * 2 );
+			outPacket.OwnsMemory( false );
+
+			socket->WritePacket( outPacket );
+		}
+	}
+
+	selectedLocationID = locationID;
+
+	return true;
+}
+
+//=====================================================================================
 void Client::TellUserWhosTurnItIs( void )
 {
 	if( board )
 	{
-		int whosTurn = board->WhosTurn();
-		wxString textColor;
-		Board::ParticipantText( whosTurn, textColor );
+		wxString statusText, textColor;
 
-		wxString statusText = wxT( "It's " ) + textColor + wxT( "'s turn." );
-		bool myTurn = board->IsParticipantsTurn( color );
-		if( myTurn )
-			statusText += wxT( "  (It's your turn!  Make your move!)" );
+		int winner = board->DetermineWinner();
+		if( winner != Board::NONE )
+		{
+			Board::ParticipantText( winner, textColor );
+			statusText += wxT( "Player " ) + textColor + wxT( " wins!" );
+		}
 		else
-			statusText += wxT( "  (It's not your turn yet!)" );
+		{
+			int whosTurn = board->WhosTurn();
+			Board::ParticipantText( whosTurn, textColor );
+
+			statusText = wxT( "It's " ) + textColor + wxT( "'s turn." );
+			bool myTurn = board->IsParticipantsTurn( color );
+			if( myTurn )
+				statusText += wxT( "  (It's your turn!  Make your move!)" );
+			else
+				statusText += wxT( "  (It's not your turn yet!)" );
+		}
 
 		wxStatusBar* statusBar = wxGetApp().GetFrame()->GetStatusBar();
 		statusBar->SetStatusText( statusText );
@@ -136,7 +186,7 @@ void Client::TellUserWhosTurnItIs( void )
 bool Client::Render( GLenum renderMode )
 {
 	if( board )
-		board->Render( renderMode );
+		board->Render( renderMode, selectedLocationID );
 
 	return true;
 }

@@ -128,7 +128,7 @@ bool Server::ServiceClient( Participant* participant )
 
 				// Make sure the move is valid.  Formulate from it a move sequence.
 				Board::MoveSequence moveSequence;
-				if( board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
+				if( !board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
 					break;
 				
 				// Perform the move sequence on the master board.
