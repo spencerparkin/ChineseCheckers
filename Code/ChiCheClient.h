@@ -28,6 +28,8 @@ namespace ChiChe
 
 	private:
 
+		void TellUserWhosTurnItIs( void );
+
 		Socket* socket;
 		Board* board;
 		Type type;

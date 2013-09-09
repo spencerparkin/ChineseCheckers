@@ -15,6 +15,7 @@
 #include <wx/textdlg.h>
 #include <wx/progdlg.h>
 #include <wx/aboutdlg.h>
+#include <wx/msgdlg.h>
 #include <wx/tokenzr.h>
 
 // OpenGL:

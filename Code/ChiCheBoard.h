@@ -49,6 +49,9 @@ namespace ChiChe
 		// Return the color of the given zone/occupant/etc.
 		static void RenderColor( int color, c3ga::vectorE3GA& renderColor );
 
+		// Return the color of the given zone/occupant/etc. as a string.
+		static void ParticipantText( int color, wxString& textColor );
+
 		// Grab a game move, if any, found in the given packet.
 		static bool UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID );
 
@@ -57,6 +60,9 @@ namespace ChiChe
 
 		// Is it the given participant's turn?
 		bool IsParticipantsTurn( int color );
+
+		// Whos turn is it?
+		int WhosTurn( void );
 
 		// Get the participants bit field.
 		int GetParticipants( void );

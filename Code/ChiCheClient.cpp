@@ -25,6 +25,11 @@ bool Client::Connect( const wxIPV4address& address )
 {
 	wxSocketClient* socketClient = new wxSocketClient( wxSOCKET_NOWAIT );
 	socket = new Socket( socketClient );
+
+	// Try once before throwing up the progress dialog.
+	socketClient->Connect( address, false );
+	if( socketClient->WaitOnConnect( 1, 0 ) && socketClient->IsConnected() )
+		return true;
 	
 	wxString hostName = address.Hostname();
 	int tryCount = 0;
@@ -64,6 +69,7 @@ bool Client::Run( void )
 			{
 				if( !board || !board->SetGameState( inPacket ) )
 					return false;
+				TellUserWhosTurnItIs();
 				break;
 			}
 			case Server::GAME_MOVE:
@@ -72,10 +78,11 @@ bool Client::Run( void )
 				if( board->UnpackMove( inPacket, sourceID, destinationID ) )
 				{
 					Board::MoveSequence moveSequence;
-					if( board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
-						board->ApplyMoveSequence( moveSequence );
-					else
+					if( !board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
 						return false;
+					if( !board->ApplyMoveSequence( moveSequence ) )
+						return false;
+					TellUserWhosTurnItIs();
 				}
 				break;
 			}
@@ -102,6 +109,27 @@ bool Client::Run( void )
 	}
 
 	return true;
+}
+
+//=====================================================================================
+void Client::TellUserWhosTurnItIs( void )
+{
+	if( board )
+	{
+		int whosTurn = board->WhosTurn();
+		wxString textColor;
+		Board::ParticipantText( whosTurn, textColor );
+
+		wxString statusText = wxT( "It's " ) + textColor + wxT( "'s turn." );
+		bool myTurn = board->IsParticipantsTurn( color );
+		if( myTurn )
+			statusText += wxT( "  (It's your turn!  Make your move!)" );
+		else
+			statusText += wxT( "  (It's not your turn yet!)" );
+
+		wxStatusBar* statusBar = wxGetApp().GetFrame()->GetStatusBar();
+		statusBar->SetStatusText( statusText );
+	}
 }
 
 //=====================================================================================

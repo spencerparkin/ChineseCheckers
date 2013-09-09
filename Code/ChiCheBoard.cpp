@@ -83,10 +83,32 @@ int Board::GetParticipants( void )
 }
 
 //=====================================================================================
+int Board::WhosTurn( void )
+{
+	return whosTurn;
+}
+
+//=====================================================================================
 /*static*/ int Board::ZoneTarget( int color )
 {
 	// This is baed on the layout map!
 	return ( color + 2 ) % 6 + 1;
+}
+
+//=====================================================================================
+/*static*/ void Board::ParticipantText( int color, wxString& textColor )
+{
+	textColor = wxT( "???" );
+	switch( color )
+	{
+		case NONE:		textColor = wxT( "none" );		break;
+		case RED:		textColor = wxT( "red" );		break;
+		case GREEN:		textColor = wxT( "green" );		break;
+		case BLUE:		textColor = wxT( "blue" );		break;
+		case YELLOW:	textColor = wxT( "yellow" );	break;
+		case MAGENTA:	textColor = wxT( "magenta" );	break;
+		case CYAN:		textColor = wxT( "cyan" );		break;
+	}
 }
 
 //=====================================================================================

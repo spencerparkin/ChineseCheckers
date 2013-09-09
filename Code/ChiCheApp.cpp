@@ -50,12 +50,6 @@ Client* App::GetClient( void )
 void App::SetServer( Server* server )
 {
 	this->server = server;
-
-	wxStatusBar* statusBar = frame->GetStatusBar();
-	if( server )
-		statusBar->SetStatusText( wxT( "Game server online and running!" ) );
-	else
-		statusBar->SetStatusText( wxT( "Game server offline!" ) );
 }
 
 //=====================================================================================

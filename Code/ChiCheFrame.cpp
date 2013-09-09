@@ -92,6 +92,8 @@ void Frame::OnHostGame( wxCommandEvent& event )
 
 	server = serverPtr.release();
 	wxGetApp().SetServer( server );
+
+	wxMessageBox( wxT( "Your game server is online and running!" ), wxT( "Server Initialization Success" ), wxOK | wxCENTRE, this );
 }
 
 //=====================================================================================
@@ -122,7 +124,7 @@ void Frame::OnJoinGame( wxCommandEvent& event )
 	wxIPV4address address;
 	if( !address.Hostname( ipAddressString ) )
 		return;
-	address.Service( port );
+	address.Service( ( unsigned short )port );
 
 	wxArrayString typeChoices;
 	typeChoices.Add( "Human" );

@@ -11,8 +11,15 @@ Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList
 {
 	context = 0;
 
+	mousePos.x = 0;
+	mousePos.y = 0;
+
 	Bind( wxEVT_PAINT, &Canvas::OnPaint, this );
 	Bind( wxEVT_SIZE, &Canvas::OnSize, this );
+	Bind( wxEVT_MOUSEWHEEL, &Canvas::OnMouseWheel, this );
+	Bind( wxEVT_LEFT_DOWN, &Canvas::OnMouseLeftDown, this );
+	Bind( wxEVT_RIGHT_DOWN, &Canvas::OnMouseRightDown, this );
+	Bind( wxEVT_MOTION, &Canvas::OnMouseMotion, this );
 }
 
 //=====================================================================================
@@ -76,10 +83,65 @@ void Canvas::OnSize( wxSizeEvent& event )
 }
 
 //=====================================================================================
+void Canvas::OnMouseWheel( wxMouseEvent& event )
+{
+	double wheelDelta = event.GetWheelDelta();
+	double wheelRotation = event.GetWheelRotation();
+	double wheelIncrements = wheelRotation / wheelDelta;
+	double zoomPercentagePerIncrement = 0.1;
+	double zoomPercentage = 1.0 + wheelIncrements * zoomPercentagePerIncrement;
+	double minimumFocalLength = 5.0;
+	double maximumFocalLength = 100.0;
+	camera.Zoom( zoomPercentage, minimumFocalLength, maximumFocalLength );
+	Refresh();
+}
+
+//=====================================================================================
+void Canvas::OnMouseLeftDown( wxMouseEvent& event )
+{
+	mousePos = event.GetPosition();
+}
+
+//=====================================================================================
+void Canvas::OnMouseRightDown( wxMouseEvent& event )
+{
+	//...
+}
+
+//=====================================================================================
+void Canvas::OnMouseMotion( wxMouseEvent& event )
+{
+	if( event.LeftIsDown() )
+	{
+		wxPoint mouseDelta = event.GetPosition() - mousePos;
+		mousePos = event.GetPosition();
+
+		c3ga::vectorE3GA eye = camera.GetEye();
+
+		c3ga::vectorE3GA xAxis, yAxis, zAxis;
+		camera.CalcPanFrame( xAxis, yAxis, zAxis );
+
+		double unitsPerPixel = 0.1;
+
+		c3ga::vectorE3GA delta;
+		delta.set( c3ga::vectorE3GA::coord_e1_e2_e3, unitsPerPixel * -double( mouseDelta.x ), unitsPerPixel * double( mouseDelta.y ), 0.0 );
+		delta = c3ga::gp( xAxis, delta.get_e1() ) + c3ga::gp( yAxis, delta.get_e2() ) + c3ga::gp( zAxis, delta.get_e3() );
+		camera.Move( delta, true );
+
+		c3ga::vectorE3GA lookVec = c3ga::unit( camera.GetFocus() - camera.GetEye() );
+		double angle = acos( lookVec.get_e2() );
+		if( angle < M_PI / 2.0 || angle > M_PI * 0.95 )
+			camera.SetEye( eye );
+		else
+			Refresh();
+	}
+}
+
+//=====================================================================================
 Canvas::Camera::Camera( void )
 {
 	focus.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
-	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 20.0, -40.0 );
+	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, -40.0 );
 	up.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 1.0, 0.0 );
 	
 	foviAngle = 60.0;
@@ -89,6 +151,48 @@ Canvas::Camera::Camera( void )
 //=====================================================================================
 Canvas::Camera::~Camera( void )
 {
+}
+
+//=====================================================================================
+void Canvas::Camera::Zoom( double zoomPercentage, double minimumFocalLength, double maximumFocalLength )
+{
+	c3ga::vectorE3GA originalEye = eye;
+	c3ga::vectorE3GA lookVec = focus - eye;
+	lookVec = c3ga::gp( lookVec, zoomPercentage );
+	eye = focus - lookVec;
+	double focalLength = FocalLength();
+	if( focalLength < minimumFocalLength || focalLength > maximumFocalLength )
+		eye = originalEye;
+}
+
+//=====================================================================================
+double Canvas::Camera::FocalLength( void )
+{
+	c3ga::vectorE3GA lookVec = focus - eye;
+	return c3ga::norm( lookVec );
+}
+
+//=====================================================================================
+void Canvas::Camera::Move( const c3ga::vectorE3GA& delta, bool maintainFocalLength /*= true*/ )
+{
+	double oldFocalLength = FocalLength();
+	eye = eye + delta;
+	if( maintainFocalLength )
+	{
+		double newFocalLength = FocalLength();
+		double zoomPercentage = oldFocalLength / newFocalLength;
+		Zoom( zoomPercentage, 0.0, 1000.0 );
+	}
+}
+
+//=====================================================================================
+void Canvas::Camera::CalcPanFrame( c3ga::vectorE3GA& xAxis, c3ga::vectorE3GA& yAxis, c3ga::vectorE3GA& zAxis )
+{
+	// This should create a right-handed system.
+	c3ga::vectorE3GA lookVec = focus - eye;
+	zAxis = c3ga::unit( c3ga::negate( lookVec ) );
+	yAxis = c3ga::unit( c3ga::lc( lookVec, c3ga::op( lookVec, up ) ) );
+	xAxis = c3ga::gp( c3ga::op( zAxis, yAxis ), c3ga::I3 );
 }
 
 //=====================================================================================
@@ -115,6 +219,30 @@ void Canvas::Camera::SetAspectRatio( double aspectRatio )
 double Canvas::Camera::GetAspectRatio( void )
 {
 	return aspectRatio;
+}
+
+//=====================================================================================
+const c3ga::vectorE3GA& Canvas::Camera::GetEye( void )
+{
+	return eye;
+}
+
+//=====================================================================================
+void Canvas::Camera::SetEye( const c3ga::vectorE3GA& eye )
+{
+	this->eye = eye;
+}
+
+//=====================================================================================
+const c3ga::vectorE3GA& Canvas::Camera::GetFocus( void )
+{
+	return focus;
+}
+
+//=====================================================================================
+void Canvas::Camera::SetFocus( const c3ga::vectorE3GA& focus )
+{
+	this->focus = focus;
 }
 
 // ChiCheCanvas.cpp
