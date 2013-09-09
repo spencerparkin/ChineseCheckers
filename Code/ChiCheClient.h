@@ -24,6 +24,7 @@ namespace ChiChe
 		bool Connect( const wxIPV4address& address );
 		bool Run( void );
 		bool Render( GLenum renderMode );
+		bool Animate( double frameRate );
 
 	private:
 

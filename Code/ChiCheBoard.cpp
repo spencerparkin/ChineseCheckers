@@ -122,6 +122,18 @@ int Board::OccupantAtLocation( int locationID )
 }
 
 //=====================================================================================
+bool Board::PositionAtLocation( int locationID, c3ga::vectorE3GA& position )
+{
+	LocationMap::iterator iter = locationMap.find( locationID );
+	if( iter == locationMap.end() )
+		return false;
+
+	Location* location = iter->second;
+	position = location->GetPosition();
+	return true;
+}
+
+//=====================================================================================
 void Board::CreateGraph( bool animate )
 {
 	int locationID = 0;
@@ -175,10 +187,20 @@ void Board::CreateGraph( bool animate )
 	VisitationMap visitationMap;
 	center->CalcPositionOfAdjacencies( centerPosition, visitationMap );
 
-	// If the board will be rendered, create the pieces that animate.
+	// If the board will be animated/rendered, create the pieces that animate.
 	if( animate )
 	{
-		//...
+		for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
+		{
+			Location* location = iter->second;
+			int occupant = location->GetOccupant();
+			if( occupant != NONE && IsParticipant( occupant ) )
+			{
+				Piece* piece = new Piece( location->GetLocationID() );
+				location->SetPiece( piece );
+				pieceList.push_back( piece );
+			}
+		}
 	}
 }
 
@@ -191,6 +213,14 @@ void Board::DestroyGraph( void )
 		Location* location = iter->second;
 		delete location;
 		locationMap.erase( iter );
+	}
+
+	while( pieceList.size() > 0 )
+	{
+		PieceList::iterator iter = pieceList.begin();
+		Piece* piece = *iter;
+		delete piece;
+		pieceList.erase( iter );
 	}
 }
 
@@ -301,11 +331,25 @@ void Board::Render( GLenum renderMode )
 		Location* location = iter->second;
 		location->Render( renderMode );
 	}
+
+	if( renderMode == GL_RENDER )
+	{
+		for( PieceList::iterator iter = pieceList.begin(); iter != pieceList.end(); iter++ )
+		{
+			Piece* piece = *iter;
+			piece->Render( this );
+		}
+	}
 }
 
 //=====================================================================================
 void Board::Animate( double frameRate )
 {
+	for( PieceList::iterator iter = pieceList.begin(); iter != pieceList.end(); iter++ )
+	{
+		Piece* piece = *iter;
+		piece->Animate( frameRate );
+	}
 }
 
 //=====================================================================================
@@ -320,18 +364,104 @@ bool Board::FindMoveSequence( int sourceID, int destinationID, MoveSequence& mov
 {
 	moveSequence.clear();
 
-	return true;
+	LocationMap::iterator iter = locationMap.find( sourceID );
+	if( iter == locationMap.end() )
+		return false;
+	Location* sourceLocation = iter->second;
+
+	iter = locationMap.find( destinationID );
+	if( iter == locationMap.end() )
+		return false;
+	Location* destinationLocation = iter->second;
+
+	// As part of the definition of a valid move, only the player who's turn it is can make the move.
+	if( sourceLocation->GetOccupant() != whosTurn )
+		return false;
+
+	// A piece can only be moved to an unoccupied location.
+	if( destinationLocation->GetOccupant() != NONE )
+		return false;
+
+	// A sequence of one move can always be performed to an immediate adjacency.
+	for( int i = 0; i < ADJACENCIES; i++ )
+	{
+		Location* adjLocation = sourceLocation->GetAdjacency(i);
+		if( adjLocation == destinationLocation )
+		{
+			moveSequence.push_back( sourceID );
+			moveSequence.push_back( destinationID );
+			return true;
+		}
+	}
+
+	// If the destination is further away, then it can be achieved as a sequence of jumps over existing pieces.
+	return FindMoveSequenceRecursively( sourceLocation, destinationLocation, moveSequence );
 }
 
 //=====================================================================================
-bool Board::IsMoveSequenceValid( const MoveSequence& moveSequence )
+// Assuming a valid path between the two given locations exists, this algorithm
+// returns the first one it finds, which may not be the shortest such path.
+bool Board::FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence )
 {
-	return true;
+	bool found = false;
+	currentLocation->Visited( true );
+
+	// Have we found our destination yet?
+	if( currentLocation == destinationLocation )
+		found = true;
+	else
+	{
+		// No, go search for it in all directions.
+		for( int i = 0; i < ADJACENCIES && !found; i++ )
+		{
+			// Can we jump in this direction?
+			Location* adjLocation = currentLocation->GetAdjacency(i);
+			if( !adjLocation || adjLocation->GetOccupant() == NONE )
+				continue;
+			Location* adjJumpLocation = adjLocation->GetAdjacency(i);
+			if( !adjJumpLocation || adjJumpLocation->GetOccupant() != NONE )
+				continue;
+				
+			// Yes, we can, but have we already searched from the location we're going to jump to?
+			if( adjJumpLocation->Visited() )
+				continue;
+			
+			// No, we haven't, so go try it.
+			found = FindMoveSequenceRecursively( adjJumpLocation, destinationLocation, moveSequence );
+		}
+	}
+
+	// If we find the destination, build up the sequence.
+	if( found )
+		moveSequence.push_front( currentLocation->GetLocationID() );
+
+	currentLocation->Visited( false );
+	return found;
 }
 
 //=====================================================================================
+// Here we assume that the given move sequence is valid.
 bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 {
+	int sourceID = *moveSequence.begin();
+	int destinationID = moveSequence.back();
+
+	LocationMap::iterator iter = locationMap.find( sourceID );
+	Location* sourceLocation = iter->second;
+	iter = locationMap.find( destinationID );
+	Location* destinationLocation = iter->second;
+
+	destinationLocation->SetOccupant( sourceLocation->GetOccupant() );
+	sourceLocation->SetOccupant( NONE );
+
+	Piece* piece = sourceLocation->GetPiece();
+	destinationLocation->SetPiece( piece );
+	sourceLocation->SetPiece(0);
+	if( piece )
+		piece->ResetAnimation( moveSequence );
+
+	NextTurn();
+
 	return true;
 }
 
@@ -343,6 +473,7 @@ Board::Location::Location( int occupant, int zone, int locationID )
 	this->locationID = locationID;
 	position.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
 	piece = 0;
+	visited = false;
 
 	for( int i = 0; i < ADJACENCIES; i++ )
 		adjacency[i] = 0;
@@ -351,6 +482,18 @@ Board::Location::Location( int occupant, int zone, int locationID )
 //=====================================================================================
 Board::Location::~Location( void )
 {
+}
+
+//=====================================================================================
+void Board::Location::Visited( bool visited )
+{
+	this->visited = visited;
+}
+
+//=====================================================================================
+bool Board::Location::Visited( void )
+{
+	return visited;
 }
 
 //=====================================================================================
@@ -368,7 +511,7 @@ void Board::Location::CalcPositionOfAdjacencies( const c3ga::vectorE3GA& positio
 		if( visitationMap.end() != visitationMap.find( adjLocation->locationID ) )
 			continue;
 
-		double angle = double(i) / double( ADJACENCIES ) * 2.0 * 3.1415926536;
+		double angle = double(i) / double( ADJACENCIES ) * 2.0 * M_PI;
 		double radius = double( LOCATION_EDGE_LENGTH );
 		c3ga::vectorE3GA adjPosition;
 		adjPosition.set( c3ga::vectorE3GA::coord_e1_e2_e3, radius * cos( angle ), 0.0, radius * sin( angle ) );
@@ -399,6 +542,12 @@ int Board::Location::GetZone( void )
 }
 
 //=====================================================================================
+int Board::Location::GetLocationID( void )
+{
+	return locationID;
+}
+
+//=====================================================================================
 void Board::Location::SetOccupant( int occupant )
 {
 	this->occupant = occupant;
@@ -411,21 +560,59 @@ int Board::Location::GetOccupant( void )
 }
 
 //=====================================================================================
+void Board::Location::SetPiece( Piece* piece )
+{
+	this->piece = piece;
+}
+
+//=====================================================================================
+Board::Piece* Board::Location::GetPiece( void )
+{
+	return piece;
+}
+
+//=====================================================================================
+const c3ga::vectorE3GA& Board::Location::GetPosition( void )
+{
+	return position;
+}
+
+//=====================================================================================
+void Board::Location::GetRenderColor( c3ga::vectorE3GA& renderColor )
+{
+	RenderColor( zone, renderColor );
+}
+
+//=====================================================================================
+/*static*/ void Board::RenderColor( int color, c3ga::vectorE3GA& renderColor )
+{
+	// This array depends upon the enum order in the header file!
+	static GLfloat locationColorMap[ CYAN + 1 ][3] =
+	{
+		{ 1.f, 1.f, 1.f },			// NONE (white)
+		{ 1.f, 0.f, 0.f },			// RED
+		{ 0.f, 1.f, 0.f },			// GREEN
+		{ 0.f, 0.f, 1.f },			// BLUE
+		{ 1.f, 1.f, 0.f },			// YELLOW
+		{ 1.f, 0.f, 1.f },			// MAGENTA
+		{ 0.f, 1.f, 1.f },			// CYAN
+	};
+
+	renderColor.set( c3ga::vectorE3GA::coord_e1_e2_e3,
+							locationColorMap[ color ][0],
+							locationColorMap[ color ][1],
+							locationColorMap[ color ][2] );
+}
+
+//=====================================================================================
 void Board::Location::Render( GLenum renderMode )
 {
 	if( renderMode == GL_RENDER )
 	{
-		switch( zone )
-		{
-			case NONE:		glColor3f( 1.f, 1.f, 1.f );		break;
-			case RED:		glColor3f( 1.f, 0.f, 0.f );		break;
-			case GREEN:		glColor3f( 0.f, 1.f, 0.f );		break;
-			case BLUE:		glColor3f( 0.f, 0.f, 1.f );		break;
-			case YELLOW:	glColor3f( 1.f, 1.f, 0.f );		break;
-			case MAGENTA:	glColor3f( 1.f, 0.f, 1.f );		break;
-			case CYAN:		glColor3f( 0.f, 1.f, 1.f );		break;
-		}
+		c3ga::vectorE3GA renderColor;
+		GetRenderColor( renderColor );
 
+		glLineWidth( 1.5f );
 		glBegin( GL_LINES );
 
 		for( int i = 0; i < ADJACENCIES; i++ )
@@ -433,8 +620,16 @@ void Board::Location::Render( GLenum renderMode )
 			Location* adjLocation = adjacency[i];
 			if( adjLocation )
 			{
-				c3ga::vectorE3GA midPoint = c3ga::add( c3ga::gp( position, 0.5 ), c3ga::gp( adjLocation->position, 0.5 ) );
+				c3ga::vectorE3GA adjRenderColor;
+				adjLocation->GetRenderColor( adjRenderColor );
+
+				double t = 0.55;
+				c3ga::vectorE3GA midPoint = c3ga::add( c3ga::gp( position, 1.0 - t ), c3ga::gp( adjLocation->position, t ) );
+				c3ga::vectorE3GA midColor = c3ga::add( c3ga::gp( renderColor, 1.0 - t ), c3ga::gp( adjRenderColor, t ) );
+
+				glColor3f( renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3() );
 				glVertex3f( position.get_e1(), position.get_e2(), position.get_e3() );
+				glColor3f( midColor.get_e1(), midColor.get_e2(), midColor.get_e3() );
 				glVertex3f( midPoint.get_e1(), midPoint.get_e2(), midPoint.get_e3() );
 			}
 		}
@@ -449,8 +644,12 @@ void Board::Location::Render( GLenum renderMode )
 }
 
 //=====================================================================================
-Board::Piece::Piece( int color )
+Board::Piece::Piece( int locationID )
 {
+	// At rest, the piece has just one location in its move sequence.
+	moveSequence.push_back( locationID );
+
+	pivotAngle = 0.0;
 }
 
 //=====================================================================================
@@ -459,13 +658,66 @@ Board::Piece::~Piece( void )
 }
 
 //=====================================================================================
-void Board::Piece::Render( void )
+void Board::Piece::Render( Board* board )
 {
+	// This should never be the case, but protect against it anyway.
+	if( moveSequence.size() == 0 )
+		return;
+
+	int locationID = moveSequence.back();
+	int occupant = board->OccupantAtLocation( locationID );
+
+	c3ga::vectorE3GA piecePosition;
+	if( moveSequence.size() == 1 )
+		board->PositionAtLocation( locationID, piecePosition );
+	else
+	{
+		MoveSequence::iterator iter = moveSequence.begin();
+		int prevLocationID = *iter++;
+		int nextLocationID = *iter;
+		c3ga::vectorE3GA prevPosition, nextPosition;
+		board->PositionAtLocation( prevLocationID, prevPosition );
+		board->PositionAtLocation( nextLocationID, nextPosition );
+
+		c3ga::vectorE3GA upVector( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 1.0, 0.0 );
+		c3ga::bivectorE3GA blade = c3ga::op( c3ga::unit( nextPosition - prevPosition ), upVector );
+		c3ga::rotorE3GA rotor = c3ga::exp( c3ga::gp( blade, 0.5 * pivotAngle ) );
+
+		c3ga::vectorE3GA midPoint = c3ga::gp( prevPosition, 0.5 ) + c3ga::gp( nextPosition, 0.5 );
+		c3ga::vectorE3GA pivotVector = nextPosition - midPoint;
+		pivotVector = c3ga::applyUnitVersor( rotor, pivotVector );
+		piecePosition = midPoint + pivotVector;
+	}
+	
+	c3ga::vectorE3GA renderColor;
+	RenderColor( occupant, renderColor );
+	glColor3f( renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3() );
+
+	double radius = double( LOCATION_EDGE_LENGTH ) * 0.4;
+	Sphere::Render( piecePosition, radius, 1 );
 }
 
 //=====================================================================================
+// This is called once per frame to animate a board piece.
 void Board::Piece::Animate( double frameRate )
 {
+	if( moveSequence.size() > 1 )
+	{
+		double radiansPerFrame = ROTATION_RATE * ( M_PI / 180.0 ) / frameRate;
+		pivotAngle += radiansPerFrame;
+		if( pivotAngle > M_PI )
+		{
+			pivotAngle = 0.0;
+			moveSequence.pop_front();
+		}
+	}
+}
+
+//=====================================================================================
+void Board::Piece::ResetAnimation( const MoveSequence& moveSequence )
+{
+	pivotAngle = 0.0;
+	this->moveSequence = moveSequence;
 }
 
 // ChiCheBoard.cpp

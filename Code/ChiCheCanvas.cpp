@@ -37,7 +37,11 @@ void Canvas::OnPaint( wxPaintEvent& event )
 
 	Client* client = wxGetApp().GetClient();
 	if( client )
+	{
+		double frameRate = 60.0;	// Guess for now.
+		client->Animate( frameRate );
 		client->Render( GL_RENDER );
+	}
 
 	PostRender( GL_RENDER );
 }
@@ -75,7 +79,7 @@ void Canvas::OnSize( wxSizeEvent& event )
 Canvas::Camera::Camera( void )
 {
 	focus.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
-	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, -20.0 );
+	eye.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 20.0, -40.0 );
 	up.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 1.0, 0.0 );
 	
 	foviAngle = 60.0;

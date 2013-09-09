@@ -107,6 +107,18 @@ bool Client::Run( void )
 //=====================================================================================
 bool Client::Render( GLenum renderMode )
 {
+	if( board )
+		board->Render( renderMode );
+
+	return true;
+}
+
+//=====================================================================================
+bool Client::Animate( double frameRate )
+{
+	if( board )
+		board->Animate( frameRate );
+
 	return true;
 }
 

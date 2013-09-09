@@ -43,7 +43,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../wxWidgets/include; ../wxWidgets/include/msvc"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -237,6 +237,14 @@
 			</File>
 			<File
 				RelativePath=".\Code\ChiCheSocket.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheSphere.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Code\ChiCheSphere.h"
 				>
 			</File>
 			<Filter

@@ -46,6 +46,9 @@ namespace ChiChe
 		// Which zone are pieces of the given color trying to get to?
 		static int ZoneTarget( int color );
 
+		// Return the color of the given zone/occupant/etc.
+		static void RenderColor( int color, c3ga::vectorE3GA& renderColor );
+
 		// Grab a game move, if any, found in the given packet.
 		static bool UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID );
 
@@ -60,6 +63,9 @@ namespace ChiChe
 
 		// Return the occupant at the given location.
 		int OccupantAtLocation( int locationID );
+
+		// Return the spacial position of the given board location.
+		bool PositionAtLocation( int locationID, c3ga::vectorE3GA& position );
 
 		// Return the winning piece color, if any.
 		int DetermineWinner( void );
@@ -76,9 +82,6 @@ namespace ChiChe
 		// If a valid sequence of moves exists from the given source location to the given destination location, return it as a move sequence.
 		// Note that this also takes into account who's turn it is.
 		bool FindMoveSequence( int sourceID, int destinationID, MoveSequence& moveSequence );
-
-		// Verify the validity of the given move sequence.  Note that this also takes into account who's turn it is.
-		bool IsMoveSequenceValid( const MoveSequence& moveSequence );
 
 		// Change the state of the game board by the given move sequence.  This will also change who's turn it is.
 		bool ApplyMoveSequence( const MoveSequence& moveSequence );
@@ -106,9 +109,20 @@ namespace ChiChe
 			Location* GetAdjacency( int index );
 
 			int GetZone( void );
+			int GetLocationID( void );
+
+			void GetRenderColor( c3ga::vectorE3GA& renderColor );
 
 			void SetOccupant( int occupant );
 			int GetOccupant( void );
+
+			void Visited( bool visited );
+			bool Visited( void );
+
+			void SetPiece( Piece* piece );
+			Piece* GetPiece( void );
+
+			const c3ga::vectorE3GA& GetPosition( void );
 
 		private:
 
@@ -118,6 +132,7 @@ namespace ChiChe
 			int zone;
 			int locationID;
 			Piece* piece;
+			bool visited;
 		};
 
 		//=====================================================================================
@@ -127,15 +142,21 @@ namespace ChiChe
 		{
 		public:
 
-			Piece( int color );
+			enum
+			{
+				ROTATION_RATE = 120,	// This is in units of degrees per second.
+			};
+
+			Piece( int locationID );
 			~Piece( void );
 
-			void Render( void );
+			void Render( Board* board );
 			void Animate( double frameRate );
+
+			void ResetAnimation( const MoveSequence& moveSequence );
 
 		private:
 
-			int color;
 			MoveSequence moveSequence;
 			double pivotAngle;
 		};
@@ -148,6 +169,8 @@ namespace ChiChe
 		// These are internal, because only the application of a move causes us to change who's turn it is.
 		void NextTurn( void );
 		void IncrementTurn( void );
+
+		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
 
 		int participants;
 		int whosTurn;

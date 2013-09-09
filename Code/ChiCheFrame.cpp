@@ -26,6 +26,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	SetMenuBar( menuBar );
 
 	statusBar = new wxStatusBar( this );
+	statusBar->PushStatusText( wxT( "Welcome!" ) );
 	SetStatusBar( statusBar );
 
 	Bind( wxEVT_MENU, &Frame::OnJoinGame, this, ID_JoinGame );
@@ -43,7 +44,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	boxSizer->Add( canvas, 1, wxALL | wxGROW, 0 );
 	SetSizer( boxSizer );
 
-	timer.Start( 100 );
+	timer.Start(1);
 }
 
 //=====================================================================================
@@ -179,7 +180,7 @@ void Frame::OnAbout( wxCommandEvent& event )
 	aboutDialogInfo.SetName( wxT( "Chinese Checkers" ) );
 	aboutDialogInfo.SetVersion( wxT( "1.0" ) );
 	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license." ) );
-	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013 Spencer Parkin <spencer.parkin@disney.com>" ) );
+	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013 Spencer T. Parkin <spencer.parkin@disney.com>" ) );
 
 	wxAboutBox( aboutDialogInfo );
 }
@@ -224,7 +225,17 @@ void Frame::OnTimer( wxTimerEvent& event )
 			delete client;
 			wxGetApp().SetClient(0);
 		}
+		else
+		{
+			canvas->Refresh();
+		}
 	}
+}
+
+//=====================================================================================
+wxStatusBar* Frame::GetStatusBar( void )
+{
+	return statusBar;
 }
 
 // ChiCheFrame.cpp

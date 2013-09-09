@@ -28,6 +28,9 @@
 // C3GA:
 #include "c3ga/c3ga.h"
 
+// Math:
+#include <math.h>
+
 // Forwards:
 namespace ChiChe
 {
@@ -38,6 +41,7 @@ namespace ChiChe
 	class Client;
 	class Server;
 	class Canvas;
+	class Sphere;
 }
 
 // ChiChe:
@@ -48,5 +52,6 @@ namespace ChiChe
 #include "ChiCheClient.h"
 #include "ChiCheServer.h"
 #include "ChiCheCanvas.h"
+#include "ChiCheSphere.h"
 
 // ChiChe.h

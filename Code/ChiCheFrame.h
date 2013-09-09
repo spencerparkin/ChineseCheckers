@@ -10,6 +10,8 @@ namespace ChiChe
 		Frame( void );
 		virtual ~Frame( void );
 
+		wxStatusBar* GetStatusBar( void );
+
 	private:
 
 		enum
