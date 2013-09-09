@@ -53,7 +53,10 @@ namespace ChiChe
 		static void ParticipantText( int color, wxString& textColor );
 
 		// Grab a game move, if any, found in the given packet.
-		static bool UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID );
+		static bool UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID );
+
+		// Put a game move into the given packet.
+		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType );
 
 		// Is the given color particpating in the game?
 		bool IsParticipant( int color );
@@ -97,6 +100,9 @@ namespace ChiChe
 
 		// Internalize the entire state of the game that is in the given packet.
 		bool SetGameState( const Socket::Packet& inPacket );
+
+		// Try to determine the best possible move that could be made by the given participant with the current game state.
+		bool FindBestMoveForParticipant( int color, int& sourceID, int& destinationID );
 
 		//=====================================================================================
 		// Each of these represents a location on the game board.

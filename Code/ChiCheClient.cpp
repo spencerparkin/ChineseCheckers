@@ -116,6 +116,22 @@ bool Client::Run( void )
 		}
 	}
 
+	if( type == COMPUTER )
+	{
+		if( board && board->IsParticipantsTurn( color ) )
+		{
+			int sourceID, destinationID;
+			if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
+				return false;
+			else
+			{
+				Socket::Packet outPacket;
+				Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
+				socket->WritePacket( outPacket );
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -129,20 +145,15 @@ bool Client::ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hit
 	
 	if( selectedLocationID >= 0 && locationID >= 0 && selectedLocationID != locationID )
 	{
-		Board::MoveSequence moveSequence;
-		if( board->FindMoveSequence( selectedLocationID, locationID, moveSequence ) )
+		if( type == HUMAN )
 		{
-			wxInt32 data[2];
-			data[0] = selectedLocationID;
-			data[1] = locationID;
-
-			Socket::Packet outPacket;
-			outPacket.SetType( GAME_MOVE );
-			outPacket.SetData( ( wxInt8* )data );
-			outPacket.SetSize( sizeof( wxInt32 ) * 2 );
-			outPacket.OwnsMemory( false );
-
-			socket->WritePacket( outPacket );
+			Board::MoveSequence moveSequence;
+			if( board->FindMoveSequence( selectedLocationID, locationID, moveSequence ) )
+			{
+				Socket::Packet outPacket;
+				Board::PackMove( outPacket, selectedLocationID, locationID, GAME_MOVE );
+				socket->WritePacket( outPacket );
+			}
 		}
 	}
 

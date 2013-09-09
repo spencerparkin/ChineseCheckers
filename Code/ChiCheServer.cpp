@@ -137,12 +137,8 @@ bool Server::ServiceClient( Participant* participant )
 				
 				// Now go have all the clients make the same move to keep all boards in sync.
 				Socket::Packet outPacket;
-				outPacket.SetType( GAME_MOVE );
-				outPacket.SetData( inPacket.GetData() );
-				outPacket.SetSize( inPacket.GetSize() );
-				outPacket.OwnsMemory( false );
+				Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
 				BroadcastPacket( outPacket );
-
 				break;
 			}
 		}

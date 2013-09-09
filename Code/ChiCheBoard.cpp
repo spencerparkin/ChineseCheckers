@@ -113,22 +113,45 @@ int Board::WhosTurn( void )
 }
 
 //=====================================================================================
-/*static*/ bool Board::UnpackMove( const Socket::Packet& packet, wxInt32& sourceID, wxInt32& destinationID )
+/*static*/ bool Board::UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID )
 {
-	if( packet.GetType() != Client::GAME_MOVE && packet.GetType() != Server::GAME_MOVE )
+	if( inPacket.GetType() != Client::GAME_MOVE && inPacket.GetType() != Server::GAME_MOVE )
 		return false;
 		
-	if( packet.GetSize() != 2 * sizeof( wxInt32 ) )
+	if( inPacket.GetSize() != 2 * sizeof( wxInt32 ) )
 		return false;
 	
-	wxInt32* data = ( wxInt32* )packet.GetData();
+	wxInt32* data = ( wxInt32* )inPacket.GetData();
+	if( !data )
+		return false;
+
 	sourceID = data[0];
 	destinationID = data[1];
-	if( packet.ByteSwap() )
+	if( inPacket.ByteSwap() )
 	{
 		sourceID = wxINT32_SWAP_ALWAYS( sourceID );
 		destinationID = wxINT32_SWAP_ALWAYS( destinationID );
 	}
+
+	return true;
+}
+
+//=====================================================================================
+/*static*/ bool Board::PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType )
+{
+	outPacket.Reset();
+
+	if( packetType != Client::GAME_MOVE && packetType != Server::GAME_MOVE )
+		return false;
+
+	wxInt32* data = new wxInt32[2];
+	data[0] = sourceID;
+	data[1] = destinationID;
+
+	outPacket.SetType( packetType );
+	outPacket.SetData( ( wxInt8* )data );
+	outPacket.SetSize( sizeof( wxInt32 ) * 2 );
+	outPacket.OwnsMemory( true );
 
 	return true;
 }
@@ -329,6 +352,12 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 	whosTurn = locationDataArray[ size - 1 ];
 
 	return true;
+}
+
+//=====================================================================================
+bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinationID )
+{
+	return false;
 }
 
 //=====================================================================================
