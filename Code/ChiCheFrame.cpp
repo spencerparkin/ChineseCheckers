@@ -44,7 +44,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	boxSizer->Add( canvas, 1, wxALL | wxGROW, 0 );
 	SetSizer( boxSizer );
 
-	timer.Start(1);
+	timer.Start( 50 );
 }
 
 //=====================================================================================

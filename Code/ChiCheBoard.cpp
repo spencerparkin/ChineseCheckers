@@ -870,7 +870,7 @@ void Board::Piece::Render( Board* board, bool highlight )
 	}
 
 	double radius = double( LOCATION_EDGE_LENGTH ) * 0.4;
-	Sphere::Render( piecePosition, radius );
+	Sphere::Render( piecePosition, radius, 1 );
 }
 
 //=====================================================================================
