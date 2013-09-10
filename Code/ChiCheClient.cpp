@@ -122,7 +122,7 @@ bool Client::Run( void )
 		// Wait until it's our turn.
 		if( !board->IsParticipantsTurn( color ) )
 			movePacketSent = false;
-		else if( !movePacketSent && !board->AnyPieceInMotion() )
+		else if( !movePacketSent && !board->AnyPieceInMotion() && board->DetermineWinner() == Board::NONE )
 		{
 			// Okay, it's time to make our move.
 			int sourceID, destinationID;

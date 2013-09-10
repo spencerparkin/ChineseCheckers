@@ -414,11 +414,6 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			destinationID = destinationMapIter->first;
 			int edgeCount = destinationMapIter->second;
 
-			if( edgeCount == 2 )
-			{
-				int b = 0;
-			}
-
 			Location* sourceLocation = locationMap[ sourceID ];
 			Location* destinationLocation = locationMap[ destinationID ];
 
@@ -427,10 +422,14 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			// Rule out a move right away if it is a digression of our objective.
 			if( c3ga::lc( generalMoveDirection, c3ga::unit( moveDirection ) ) <= 0.0 )
 				continue;
+			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == zoneTarget || destinationLocation->GetZone() == color ) )
+				continue;
+
+			// TODO: The computer doesn't know how to get all of its pieces into the triangle when there's a traffic jam near the end of the game.  Fix it.
 
 			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - targetLocation->GetPosition() );
 			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
-			double moveDistance = c3ga::norm( moveDirection );
+			double moveDistance = c3ga::lc( moveDirection, generalMoveDirection );
 			
 			// Is this a move that gets us closer to the target?
 			if( sourceDistanceToTarget > destinationDistanceToTarget )
