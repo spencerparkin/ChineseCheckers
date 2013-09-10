@@ -38,6 +38,8 @@ namespace ChiChe
 		typedef std::map< int, Location* > LocationMap;
 		typedef std::list< Piece* > PieceList;
 		typedef std::map< int, bool > VisitationMap;
+		typedef std::map< int, bool > DestinationMap;
+		typedef std::map< int, DestinationMap* > SourceMap;
 
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
@@ -139,6 +141,8 @@ namespace ChiChe
 
 			const c3ga::vectorE3GA& GetPosition( void );
 
+			int GetAdjacencyCount( void );
+
 		private:
 
 			c3ga::vectorE3GA position;
@@ -193,6 +197,12 @@ namespace ChiChe
 		void IncrementTurn( void );
 
 		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
+
+		Location* FindClosestUnoccupiedLocationInZone( const c3ga::vectorE3GA& position, int zone );
+		void FindAllMovesForParticipant( int color, SourceMap& sourceMap );
+		DestinationMap* FindAllMovesForLocation( Location* location );
+		void FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap );
+		void DeleteMoves( SourceMap& sourceMap );
 
 		int participants;
 		int whosTurn;

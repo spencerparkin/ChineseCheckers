@@ -355,13 +355,164 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 }
 
 //=====================================================================================
-// Hmmm.  A smarter AI player would probably try to plan their moves out.  This routine
-// only looks at the current state of the board and then tries to come up with a good
-// move.  There is no attempt to try to do certain moves to setup for better moves or
-// to anticipate any opponent's move in order to block their progress across the board.
+// This algorithm doesn't try to anticipate a player's actions, think ahead, or anything
+// like that.  But one advantage it does have over a human player is that it can make
+// a decision based upon an evaluation of every possible move.  There is certainly
+// room for improvement here.
 bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinationID )
 {
-	return false;
+	// Find the vertex location.  This is the location of the target zone that has only two adjacencies.
+	int zoneTarget = ZoneTarget( color );
+	Location* vertexLocation = 0;
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end() && !vertexLocation; iter++ )
+	{
+		Location* location = iter->second;
+		if( location->GetZone() == zoneTarget && location->GetAdjacencyCount() == 2 )
+			vertexLocation = location;
+	}
+	if( !vertexLocation )
+		return false;
+
+	// Our target location is then an unoccupied location as close to the vertex location as possible.
+	c3ga::vectorE3GA vertexPosition = vertexLocation->GetPosition();
+	Location* targetLocation = FindClosestUnoccupiedLocationInZone( vertexPosition, zoneTarget );
+
+	// In this case, we have either already won the game, or one or more opponents are completely occupying our target zone.
+	if( !targetLocation )
+	{
+		// Go ahead and choose a target location that is closest to our target vertex in the nuetral zone.
+		targetLocation = FindClosestUnoccupiedLocationInZone( vertexPosition, NONE );
+		if( !targetLocation )
+			return false;
+	}
+
+	// Go create a big huge list of every possible move that we can possibly make.
+	SourceMap sourceMap;
+	FindAllMovesForParticipant( color, sourceMap );
+
+	// Now try to choose the best move from among this list.
+	double smallestDistance = -1.0;
+	int bestMove[2] = { -1, -1 };
+	for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
+	{
+		sourceID = sourceMapIter->first;
+		DestinationMap* destinationMap = sourceMapIter->second;
+		for( DestinationMap::iterator destinationMapIter = destinationMap->begin(); destinationMapIter != destinationMap->end(); destinationMapIter++ )
+		{
+			destinationID = destinationMapIter->first;
+			Location* location = locationMap[ destinationID ];
+			double distance = c3ga::norm( location->GetPosition() - targetLocation->GetPosition() );
+
+			if( bestMove[0] != -1 )
+			{
+				// Is this move better than our current best move?
+				if( distance >= smallestDistance )
+					continue;
+
+				// TODO: This huerstic doesn't work.  Fix it.
+			}
+
+			bestMove[0] = sourceID;
+			bestMove[1] = destinationID;
+			smallestDistance = distance;
+		}
+	}
+
+	// Free up all the memory we used.
+	DeleteMoves( sourceMap );
+
+	// Return our best move to the caller.
+	sourceID = bestMove[0];
+	destinationID = bestMove[1];
+	return true;
+}
+
+//=====================================================================================
+Board::Location* Board::FindClosestUnoccupiedLocationInZone( const c3ga::vectorE3GA& position, int zone )
+{
+	Location* foundLocation = 0;
+	double smallestDistance = -1.0;
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
+	{
+		Location* location = iter->second;
+		if( location->GetZone() == zone && location->GetOccupant() == NONE )
+		{
+			double distance = c3ga::norm( location->GetPosition() - position );
+			if( smallestDistance == -1.0 || distance < smallestDistance )
+			{
+				foundLocation = location;
+				smallestDistance = distance;
+			}
+		}
+	}
+	return foundLocation;
+}
+
+//=====================================================================================
+void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap )
+{
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
+	{
+		Location* location = iter->second;
+		if( location->GetOccupant() == color )
+		{
+			DestinationMap* destinationMap = FindAllMovesForLocation( location );
+			sourceMap[ location->GetLocationID() ] = destinationMap;
+		}
+	}
+}
+
+//=====================================================================================
+Board::DestinationMap* Board::FindAllMovesForLocation( Location* location )
+{
+	DestinationMap* destinationMap = new DestinationMap();
+
+	for( int i = 0; i < ADJACENCIES; i++ )
+	{
+		Location* adjLocation = location->GetAdjacency(i);
+		if( adjLocation && adjLocation->GetOccupant() == NONE )
+			( *destinationMap )[ adjLocation->GetLocationID() ] = true;
+	}
+
+	FindAllMovesForLocationRecursively( location, *destinationMap );
+
+	return destinationMap;
+}
+
+//=====================================================================================
+void Board::FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap )
+{
+	location->Visited( true );
+
+	for( int i = 0; i < ADJACENCIES; i++ )
+	{
+		Location* adjLocation = location->GetAdjacency(i);
+		if( adjLocation && adjLocation->GetOccupant() != NONE )
+		{
+			Location* adjJumpLocation = adjLocation->GetAdjacency(i);
+			if( adjJumpLocation && adjJumpLocation->GetOccupant() == NONE )
+			{
+				if( !adjJumpLocation->Visited() )
+				{
+					destinationMap[ adjJumpLocation->GetLocationID() ] = true;
+					FindAllMovesForLocationRecursively( adjJumpLocation, destinationMap );
+				}
+			}
+		}
+	}
+
+	location->Visited( false );
+}
+
+//=====================================================================================
+void Board::DeleteMoves( SourceMap& sourceMap )
+{
+	for( SourceMap::iterator iter = sourceMap.begin(); iter != sourceMap.end(); iter++ )
+	{
+		DestinationMap* destinationMap = iter->second;
+		delete destinationMap;
+	}
+	sourceMap.clear();
 }
 
 //=====================================================================================
@@ -716,6 +867,16 @@ Board::Piece* Board::Location::GetPiece( void )
 const c3ga::vectorE3GA& Board::Location::GetPosition( void )
 {
 	return position;
+}
+
+//=====================================================================================
+int Board::Location::GetAdjacencyCount( void )
+{
+	int count = 0;
+	for( int i = 0; i < ADJACENCIES; i++ )
+		if( adjacency[i] )
+			count++;
+	return count;
 }
 
 //=====================================================================================

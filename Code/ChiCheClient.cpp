@@ -12,6 +12,7 @@ Client::Client( Type type )
 	board = 0;
 	color = Board::NONE;
 	selectedLocationID = -1;
+	movePacketSent = false;
 }
 
 //=====================================================================================
@@ -116,10 +117,12 @@ bool Client::Run( void )
 		}
 	}
 
-	if( type == COMPUTER )
+	if( type == COMPUTER && board )
 	{
-		// Make sure it's our turn and wait for all animations to stop.
-		if( board && board->IsParticipantsTurn( color ) && !board->AnyPieceInMotion() )
+		// Wait until it's our turn.
+		if( !board->IsParticipantsTurn( color ) )
+			movePacketSent = false;
+		else if( !movePacketSent && !board->AnyPieceInMotion() )
 		{
 			// Okay, it's time to make our move.
 			int sourceID, destinationID;
@@ -130,6 +133,7 @@ bool Client::Run( void )
 				Socket::Packet outPacket;
 				Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
 				socket->WritePacket( outPacket );
+				movePacketSent = true;
 			}
 		}
 	}

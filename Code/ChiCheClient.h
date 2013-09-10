@@ -36,6 +36,7 @@ namespace ChiChe
 		Type type;
 		int color;
 		int selectedLocationID;
+		bool movePacketSent;
 	};
 }
 
