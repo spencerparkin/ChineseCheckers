@@ -358,33 +358,41 @@ bool Board::SetGameState( const Socket::Packet& inPacket )
 }
 
 //=====================================================================================
+Board::Location* Board::FindZoneVertex( int zone )
+{
+	Location* foundLocation = 0;
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end() && !foundLocation; iter++ )
+	{
+		Location* location = iter->second;
+		if( location->GetZone() == zone && location->GetAdjacencyCount() == 2 )
+			foundLocation = location;
+	}
+	return foundLocation;
+}
+
+//=====================================================================================
 // This algorithm doesn't try to anticipate a player's actions, think ahead, or anything
 // like that.  But one advantage it does have over a human player is that it can make
 // a decision based upon an evaluation of every possible move.  There is certainly
 // room for improvement here.
 bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinationID )
 {
-	// Find the vertex location.  This is the location of the target zone that has only two adjacencies.
+	// Calculate the general direction that we want to be moving.
 	int zoneTarget = ZoneTarget( color );
-	Location* vertexLocation = 0;
-	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end() && !vertexLocation; iter++ )
-	{
-		Location* location = iter->second;
-		if( location->GetZone() == zoneTarget && location->GetAdjacencyCount() == 2 )
-			vertexLocation = location;
-	}
-	if( !vertexLocation )
-		return false;
+	Location* sourceVertexLocation = FindZoneVertex( color );
+	Location* destinationVertexLocation = FindZoneVertex( zoneTarget );
+	if( !sourceVertexLocation || !destinationVertexLocation )
+		return false;		// This should never happen.
+	c3ga::vectorE3GA generalMoveDirection = c3ga::unit( destinationVertexLocation->GetPosition() - sourceVertexLocation->GetPosition() );
 
-	// Our target location is then an unoccupied location as close to the vertex location as possible.
-	c3ga::vectorE3GA vertexPosition = vertexLocation->GetPosition();
-	Location* targetLocation = FindClosestUnoccupiedLocationInZone( vertexPosition, zoneTarget );
+	// Our target location is then an unoccupied location as close to the destination vertex location as possible.
+	Location* targetLocation = FindClosestUnoccupiedLocationInZone( destinationVertexLocation->GetPosition(), zoneTarget );
 
 	// In this case, we have either already won the game, or one or more opponents are completely occupying our target zone.
 	if( !targetLocation )
 	{
 		// Go ahead and choose a target location that is closest to our target vertex in the nuetral zone.
-		targetLocation = FindClosestUnoccupiedLocationInZone( vertexPosition, NONE );
+		targetLocation = FindClosestUnoccupiedLocationInZone( destinationVertexLocation->GetPosition(), NONE );
 		if( !targetLocation )
 			return false;
 	}
@@ -394,7 +402,8 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 	FindAllMovesForParticipant( color, sourceMap );
 
 	// Now try to choose the best move from among this list.
-	double smallestDistance = -1.0;
+	// It is not clear as to the correctness of this algorithm, which would be that it always converges to a win.
+	double largestMoveDistance = -1.0;
 	int bestMove[2] = { -1, -1 };
 	for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
 	{
@@ -403,21 +412,38 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 		for( DestinationMap::iterator destinationMapIter = destinationMap->begin(); destinationMapIter != destinationMap->end(); destinationMapIter++ )
 		{
 			destinationID = destinationMapIter->first;
-			Location* location = locationMap[ destinationID ];
-			double distance = c3ga::norm( location->GetPosition() - targetLocation->GetPosition() );
+			int edgeCount = destinationMapIter->second;
 
-			if( bestMove[0] != -1 )
+			if( edgeCount == 2 )
 			{
-				// Is this move better than our current best move?
-				if( distance >= smallestDistance )
-					continue;
-
-				// TODO: This huerstic doesn't work.  Fix it.
+				int b = 0;
 			}
 
-			bestMove[0] = sourceID;
-			bestMove[1] = destinationID;
-			smallestDistance = distance;
+			Location* sourceLocation = locationMap[ sourceID ];
+			Location* destinationLocation = locationMap[ destinationID ];
+
+			c3ga::vectorE3GA moveDirection = destinationLocation->GetPosition() - sourceLocation->GetPosition();
+
+			// Rule out a move right away if it is a digression of our objective.
+			if( c3ga::lc( generalMoveDirection, c3ga::unit( moveDirection ) ) <= 0.0 )
+				continue;
+
+			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - targetLocation->GetPosition() );
+			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
+			double moveDistance = c3ga::norm( moveDirection );
+			
+			// Is this a move that gets us closer to the target?
+			if( sourceDistanceToTarget > destinationDistanceToTarget )
+			{
+				// Yes.  Is it better than our current move?
+				if( largestMoveDistance == -1.0 || moveDistance > largestMoveDistance )
+				{
+					// Yes.  Keep it.
+					bestMove[0] = sourceID;
+					bestMove[1] = destinationID;
+					largestMoveDistance = moveDistance;
+				}
+			}
 		}
 	}
 
@@ -427,6 +453,8 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 	// Return our best move to the caller.
 	sourceID = bestMove[0];
 	destinationID = bestMove[1];
+	if( sourceID == -1 || destinationID == -1 )
+		return false;
 	return true;
 }
 
@@ -474,16 +502,16 @@ Board::DestinationMap* Board::FindAllMovesForLocation( Location* location )
 	{
 		Location* adjLocation = location->GetAdjacency(i);
 		if( adjLocation && adjLocation->GetOccupant() == NONE )
-			( *destinationMap )[ adjLocation->GetLocationID() ] = true;
+			( *destinationMap )[ adjLocation->GetLocationID() ] = 1;
 	}
 
-	FindAllMovesForLocationRecursively( location, *destinationMap );
+	FindAllMovesForLocationRecursively( location, *destinationMap, 2 );
 
 	return destinationMap;
 }
 
 //=====================================================================================
-void Board::FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap )
+void Board::FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap, int edgeCount )
 {
 	location->Visited( true );
 
@@ -497,8 +525,8 @@ void Board::FindAllMovesForLocationRecursively( Location* location, DestinationM
 			{
 				if( !adjJumpLocation->Visited() )
 				{
-					destinationMap[ adjJumpLocation->GetLocationID() ] = true;
-					FindAllMovesForLocationRecursively( adjJumpLocation, destinationMap );
+					destinationMap[ adjJumpLocation->GetLocationID() ] = edgeCount;
+					FindAllMovesForLocationRecursively( adjJumpLocation, destinationMap, edgeCount + 2 );
 				}
 			}
 		}
