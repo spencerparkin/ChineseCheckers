@@ -104,6 +104,9 @@ namespace ChiChe
 		// Try to determine the best possible move that could be made by the given participant with the current game state.
 		bool FindBestMoveForParticipant( int color, int& sourceID, int& destinationID );
 
+		// Tell us if any piece is still animating.
+		bool AnyPieceInMotion( void );
+
 		//=====================================================================================
 		// Each of these represents a location on the game board.
 		class Location
@@ -168,6 +171,8 @@ namespace ChiChe
 			void ResetAnimation( const MoveSequence& moveSequence );
 
 			int GetLocationID( void );
+
+			bool IsInMotion( void );
 
 		private:
 

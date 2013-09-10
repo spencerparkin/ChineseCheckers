@@ -17,6 +17,8 @@ Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList
 	hitBuffer = 0;
 	hitBufferSize = 0;
 
+	lastFrameTime = -1;
+
 	Bind( wxEVT_PAINT, &Canvas::OnPaint, this );
 	Bind( wxEVT_SIZE, &Canvas::OnSize, this );
 	Bind( wxEVT_MOUSEWHEEL, &Canvas::OnMouseWheel, this );
@@ -48,7 +50,18 @@ void Canvas::OnPaint( wxPaintEvent& event )
 	Client* client = wxGetApp().GetClient();
 	if( client )
 	{
-		double frameRate = 60.0;	// Guess for now.
+		// Approximate the frame-rate this frame as the frame-rate last frame.
+		double frameRate = 60.0;		// This is in units of frames per second.
+		wxLongLong thisFrameTime = wxGetLocalTimeMillis();
+		if( lastFrameTime != -1 )
+		{
+			wxLongLong deltaTime = thisFrameTime - lastFrameTime;
+			double frameTime = deltaTime.ToDouble() / 1000.0;
+			frameRate = 1.0 / frameTime;
+		}
+		lastFrameTime = thisFrameTime;
+
+		// Animate and render.
 		client->Animate( frameRate );
 		client->Render( GL_RENDER );
 	}

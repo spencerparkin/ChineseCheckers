@@ -463,6 +463,18 @@ void Board::Animate( double frameRate )
 }
 
 //=====================================================================================
+bool Board::AnyPieceInMotion( void )
+{
+	for( PieceList::iterator iter = pieceList.begin(); iter != pieceList.end(); iter++ )
+	{
+		Piece* piece = *iter;
+		if( piece->IsInMotion() )
+			return true;
+	}
+	return false;
+}
+
+//=====================================================================================
 int Board::FindSelectedLocation( unsigned int* hitBuffer, int hitBufferSize, int hitCount )
 {
 	int locationID = -1;
@@ -887,6 +899,14 @@ void Board::Piece::Animate( double frameRate )
 			moveSequence.pop_front();
 		}
 	}
+}
+
+//=====================================================================================
+bool Board::Piece::IsInMotion( void )
+{
+	if( moveSequence.size() > 1 )
+		return true;
+	return false;
 }
 
 //=====================================================================================

@@ -118,8 +118,10 @@ bool Client::Run( void )
 
 	if( type == COMPUTER )
 	{
-		if( board && board->IsParticipantsTurn( color ) )
+		// Make sure it's our turn and wait for all animations to stop.
+		if( board && board->IsParticipantsTurn( color ) && !board->AnyPieceInMotion() )
 		{
+			// Okay, it's time to make our move.
 			int sourceID, destinationID;
 			if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
 				return false;

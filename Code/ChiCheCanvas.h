@@ -66,6 +66,7 @@ namespace ChiChe
 		wxPoint mousePos;
 		unsigned int* hitBuffer;
 		int hitBufferSize;
+		wxLongLong lastFrameTime;
 	};
 }
 
