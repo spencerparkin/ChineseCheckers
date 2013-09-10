@@ -194,7 +194,10 @@ void Board::CreateGraph( void )
 			int color = layoutMap[i][j];
 			if( color != -1 )
 			{
-				Location* location = new Location( color, color, locationID );
+				int occupant = NONE;
+				if( IsParticipant( color ) )
+					occupant = color;
+				Location* location = new Location( occupant, color, locationID );
 				locationMap[ locationID ] = location;
 				connectionMap[i][j] = location;
 				locationID++;
