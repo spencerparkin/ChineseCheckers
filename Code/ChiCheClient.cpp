@@ -117,25 +117,43 @@ bool Client::Run( void )
 		}
 	}
 
-	if( type == COMPUTER && board )
+	// If we're an computer participant, go run the AI logic.
+	while( type == COMPUTER )
 	{
+		// There's nothing for us to do until the board is created.
+		if( !board )
+			break;
+
 		// Wait until it's our turn.
 		if( !board->IsParticipantsTurn( color ) )
-			movePacketSent = false;
-		else if( !movePacketSent && !board->AnyPieceInMotion() && board->DetermineWinner() == Board::NONE )
 		{
-			// Okay, it's time to make our move.
-			int sourceID, destinationID;
-			if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
-				return false;
-			else
-			{
-				Socket::Packet outPacket;
-				Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
-				socket->WritePacket( outPacket );
-				movePacketSent = true;
-			}
+			movePacketSent = false;
+			break;
 		}
+
+		// Wait for our turn to take affect if we've already taken it.
+		if( movePacketSent )
+			break;
+
+		// Wait for all animations to settle before taking our turn.
+		if( board->AnyPieceInMotion() )
+			break;
+			
+		// If someone has just won the game, don't submit any moves; the game is over.
+		if( board->DetermineWinner() != Board::NONE )
+			break;
+		
+		// Okay, it's time to make our move.
+		int sourceID, destinationID;
+		if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
+			return false;
+		
+		// Submit our move!
+		Socket::Packet outPacket;
+		Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
+		socket->WritePacket( outPacket );
+		movePacketSent = true;
+		break;
 	}
 
 	return true;

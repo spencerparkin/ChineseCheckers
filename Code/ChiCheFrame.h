@@ -35,6 +35,7 @@ namespace ChiChe
 		wxTimer timer;
 		wxMenuBar* menuBar;
 		wxStatusBar* statusBar;
+		bool continuousRefresh;
 	};
 }
 

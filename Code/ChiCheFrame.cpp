@@ -45,6 +45,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	SetSizer( boxSizer );
 
 	timer.Start( 50 );
+	continuousRefresh = true;
 }
 
 //=====================================================================================
@@ -230,9 +231,8 @@ void Frame::OnTimer( wxTimerEvent& event )
 		else
 		{
 			client->Animate( canvas->FrameRate() );
-
-			// TODO: We probably shouldn't be thrashing OnPaint events when the window is not active.
-			canvas->Refresh();
+			if( continuousRefresh )
+				canvas->Refresh();
 		}
 	}
 }
