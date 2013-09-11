@@ -229,6 +229,7 @@ void Frame::OnTimer( wxTimerEvent& event )
 		}
 		else
 		{
+			// TODO: We probably shouldn't be thrashing OnPaint events when the window is not active.
 			canvas->Refresh();
 		}
 	}
