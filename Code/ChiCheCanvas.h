@@ -14,6 +14,8 @@ namespace ChiChe
 
 		void BindContext( void );
 
+		double FrameRate( void );
+
 	private:
 
 		//=====================================================================================
@@ -67,6 +69,7 @@ namespace ChiChe
 		unsigned int* hitBuffer;
 		int hitBufferSize;
 		wxLongLong lastFrameTime;
+		double frameRate;
 	};
 }
 

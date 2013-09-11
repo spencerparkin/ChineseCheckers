@@ -18,6 +18,7 @@ Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList
 	hitBufferSize = 0;
 
 	lastFrameTime = -1;
+	frameRate = 60.0;
 
 	Bind( wxEVT_PAINT, &Canvas::OnPaint, this );
 	Bind( wxEVT_SIZE, &Canvas::OnSize, this );
@@ -43,6 +44,12 @@ void Canvas::BindContext( void )
 }
 
 //=====================================================================================
+double Canvas::FrameRate( void )
+{
+	return frameRate;
+}
+
+//=====================================================================================
 void Canvas::OnPaint( wxPaintEvent& event )
 {
 	PreRender( GL_RENDER );
@@ -51,7 +58,6 @@ void Canvas::OnPaint( wxPaintEvent& event )
 	if( client )
 	{
 		// Approximate the frame-rate this frame as the frame-rate last frame.
-		double frameRate = 60.0;		// This is in units of frames per second.
 		wxLongLong thisFrameTime = wxGetLocalTimeMillis();
 		if( lastFrameTime != -1 )
 		{
@@ -61,8 +67,7 @@ void Canvas::OnPaint( wxPaintEvent& event )
 		}
 		lastFrameTime = thisFrameTime;
 
-		// Animate and render.
-		client->Animate( frameRate );
+		// Ask the client to render for us.
 		client->Render( GL_RENDER );
 	}
 

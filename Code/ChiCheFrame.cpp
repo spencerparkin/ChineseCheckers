@@ -229,6 +229,8 @@ void Frame::OnTimer( wxTimerEvent& event )
 		}
 		else
 		{
+			client->Animate( canvas->FrameRate() );
+
 			// TODO: We probably shouldn't be thrashing OnPaint events when the window is not active.
 			canvas->Refresh();
 		}
