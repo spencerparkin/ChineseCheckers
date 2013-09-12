@@ -30,6 +30,7 @@ namespace ChiChe
 		void OnUpdateMenuItemUI( wxUpdateUIEvent& event );
 		void OnTimer( wxTimerEvent& event );
 		void OnClose( wxCloseEvent& event );
+		void OnActivate( wxActivateEvent& event );
 
 		Canvas* canvas;
 		wxTimer timer;

@@ -37,6 +37,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HostGame );
 	Bind( wxEVT_TIMER, &Frame::OnTimer, this, ID_Timer );
 	Bind( wxEVT_CLOSE_WINDOW, &Frame::OnClose, this );
+	Bind( wxEVT_ACTIVATE, &Frame::OnActivate, this );
 
 	canvas = new Canvas( this );
 
@@ -223,6 +224,7 @@ void Frame::OnTimer( wxTimerEvent& event )
 	Client* client = wxGetApp().GetClient();
 	if( client )
 	{
+		// BUG: We're getting in here with a stale client pointer.  How?!  It seems to happen at end of game.
 		if( !client->Run() )
 		{
 			delete client;
@@ -235,6 +237,12 @@ void Frame::OnTimer( wxTimerEvent& event )
 				canvas->Refresh();
 		}
 	}
+}
+
+//=====================================================================================
+void Frame::OnActivate( wxActivateEvent& event )
+{
+	continuousRefresh = event.GetActive();
 }
 
 //=====================================================================================
