@@ -420,12 +420,12 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			c3ga::vectorE3GA moveDirection = destinationLocation->GetPosition() - sourceLocation->GetPosition();
 
 			// Rule out a move right away if it is a digression of our objective.
-			if( c3ga::lc( generalMoveDirection, c3ga::unit( moveDirection ) ) <= 0.0 )
+			double epsilon = 0.5;
+			double projectedMoveDistance = c3ga::lc( generalMoveDirection, c3ga::unit( moveDirection ) );
+			if( projectedMoveDistance < -epsilon )
 				continue;
 			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == zoneTarget || destinationLocation->GetZone() == color ) )
 				continue;
-
-			// TODO: The computer doesn't know how to get all of its pieces into the triangle when there's a traffic jam near the end of the game.  Fix it.
 
 			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - targetLocation->GetPosition() );
 			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
@@ -434,6 +434,10 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			// Is this a move that gets us closer to the target?
 			if( sourceDistanceToTarget > destinationDistanceToTarget )
 			{
+				// Special case: Do not consider lateral moves for pieces that are already in the target zone.
+				if( fabs( projectedMoveDistance ) < epsilon && sourceLocation->GetZone() == zoneTarget )
+					continue;
+
 				// Yes.  Is it better than our current move?
 				if( largestMoveDistance == -1.0 || moveDistance > largestMoveDistance )
 				{
