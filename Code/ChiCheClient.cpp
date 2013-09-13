@@ -114,6 +114,17 @@ bool Client::Run( void )
 				board = new Board( participants, true );
 				break;
 			}
+			case Server::DROPPED_CLIENT:
+			{
+				wxInt32 color = *( wxInt32* )inPacket.GetData();
+				if( inPacket.ByteSwap() )
+					color = wxINT32_SWAP_ALWAYS( color );
+				wxString textColor;
+				Board::ParticipantText( color, textColor );
+				wxString message = wxT( "The player for color " ) + textColor + wxT( " has been dropped by the server, probably due to connection failure.  The game will halt at this player's turn until another client joins the game." );
+				wxMessageBox( message, wxT( "Dropped Client" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+				break;
+			}
 		}
 	}
 
@@ -146,7 +157,13 @@ bool Client::Run( void )
 		// Okay, it's time to make our move.
 		int sourceID, destinationID;
 		if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
+		{
+			wxString textColor;
+			Board::ParticipantText( color, textColor );
+			wxString message = wxT( "The computer player for color " ) + textColor + wxT( " is stumped and sadly can't continue the game." );
+			wxMessageBox( message, wxT( "The Computer Is Stupid" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
 			return false;
+		}
 		
 		// Submit our move!
 		Socket::Packet outPacket;

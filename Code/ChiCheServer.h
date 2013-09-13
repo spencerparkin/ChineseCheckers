@@ -13,6 +13,7 @@ namespace ChiChe
 			PARTICIPANTS,
 			GAME_MOVE,
 			GAME_STATE,
+			DROPPED_CLIENT,
 		};
 
 		Server( int participants );
@@ -32,6 +33,8 @@ namespace ChiChe
 		public:
 			Participant( wxSocketBase* connectedSocket, int color );
 			~Participant( void );
+
+			int Color( void );
 
 		private:
 			Socket* socket;

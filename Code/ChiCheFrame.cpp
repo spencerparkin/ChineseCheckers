@@ -10,9 +10,14 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	wxMenu* gameMenu = new wxMenu();
 	wxMenuItem* joinGameMenuItem = new wxMenuItem( gameMenu, ID_JoinGame, wxT( "Join Game" ), wxT( "Join a hosted game on the network." ) );
 	wxMenuItem* hostGameMenuItem = new wxMenuItem( gameMenu, ID_HostGame, wxT( "Host Game" ), wxT( "Host a game on the network." ) );
+	wxMenuItem* leaveGameMenuItem = new wxMenuItem( gameMenu, ID_LeaveGame, wxT( "Leave Game" ), wxT( "Disconnect from a joined game." ) );
+	wxMenuItem* killGameMenuItem = new wxMenuItem( gameMenu, ID_KillGame, wxT( "Kill Game" ), wxT( "Discontinue a hosted game." ) );
 	wxMenuItem* exitMenuItem = new wxMenuItem( gameMenu, ID_Exit, wxT( "Exit" ), wxT( "Exit the program." ) );
 	gameMenu->Append( joinGameMenuItem );
 	gameMenu->Append( hostGameMenuItem );
+	gameMenu->AppendSeparator();
+	gameMenu->Append( leaveGameMenuItem );
+	gameMenu->Append( killGameMenuItem );
 	gameMenu->AppendSeparator();
 	gameMenu->Append( exitMenuItem );
 
@@ -31,10 +36,14 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 
 	Bind( wxEVT_MENU, &Frame::OnJoinGame, this, ID_JoinGame );
 	Bind( wxEVT_MENU, &Frame::OnHostGame, this, ID_HostGame );
+	Bind( wxEVT_MENU, &Frame::OnLeaveGame, this, ID_LeaveGame );
+	Bind( wxEVT_MENU, &Frame::OnKillGame, this, ID_KillGame );
 	Bind( wxEVT_MENU, &Frame::OnExit, this, ID_Exit );
 	Bind( wxEVT_MENU, &Frame::OnAbout, this, ID_About );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_JoinGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HostGame );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_LeaveGame );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_KillGame );
 	Bind( wxEVT_TIMER, &Frame::OnTimer, this, ID_Timer );
 	Bind( wxEVT_CLOSE_WINDOW, &Frame::OnClose, this );
 	Bind( wxEVT_ACTIVATE, &Frame::OnActivate, this );
@@ -150,13 +159,25 @@ void Frame::OnJoinGame( wxCommandEvent& event )
 }
 
 //=====================================================================================
+void Frame::OnLeaveGame( wxCommandEvent& event )
+{
+	KillClient();
+}
+
+//=====================================================================================
+void Frame::OnKillGame( wxCommandEvent& event )
+{
+	KillServer();
+}
+
+//=====================================================================================
 void Frame::OnExit( wxCommandEvent& event )
 {
 	Close( true );
 }
 
 //=====================================================================================
-void Frame::OnClose( wxCloseEvent& event )
+void Frame::KillServer( void )
 {
 	Server* server = wxGetApp().GetServer();
 	if( server )
@@ -165,13 +186,24 @@ void Frame::OnClose( wxCloseEvent& event )
 		delete server;
 		wxGetApp().SetServer(0);
 	}
+}
 
+//=====================================================================================
+void Frame::KillClient( void )
+{
 	Client* client = wxGetApp().GetClient();
 	if( client )
 	{
 		delete client;
 		wxGetApp().SetClient(0);
 	}
+}
+
+//=====================================================================================
+void Frame::OnClose( wxCloseEvent& event )
+{
+	KillServer();
+	KillClient();
 
 	event.Skip();
 }
@@ -204,6 +236,16 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 			event.Enable( wxGetApp().GetServer() ? false : true );
 			break;
 		}
+		case ID_LeaveGame:
+		{
+			event.Enable( wxGetApp().GetClient() ? true : false );
+			break;
+		}
+		case ID_KillGame:
+		{
+			event.Enable( wxGetApp().GetServer() ? true : false );
+			break;
+		}
 	}
 }
 
@@ -211,15 +253,8 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 void Frame::OnTimer( wxTimerEvent& event )
 {
 	Server* server = wxGetApp().GetServer();
-	if( server )
-	{
-		if( !server->Run() )
-		{
-			server->Finalize();
-			delete server;
-			wxGetApp().SetServer(0);
-		}
-	}
+	if( server && !server->Run() )
+		KillServer();
 
 	Client* client = wxGetApp().GetClient();
 	if( client )
@@ -227,8 +262,8 @@ void Frame::OnTimer( wxTimerEvent& event )
 		// BUG: We're getting in here with a stale client pointer.  How?!  It seems to happen at end of game.
 		if( !client->Run() )
 		{
-			delete client;
-			wxGetApp().SetClient(0);
+			KillClient();
+			wxMessageBox( wxT( "We have lost our connection with the server, possibly because the game server has gone down." ), wxT( "Connection Lost" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
 		}
 		else
 		{

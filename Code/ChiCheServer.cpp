@@ -92,8 +92,16 @@ bool Server::Run( void )
 		iter++;
 		if( !ServiceClient( participant ) )
 		{
+			wxInt32 color = participant->Color();
 			delete participant;
 			participantList.erase( eraseIter );
+
+			Socket::Packet outPacket;
+			outPacket.SetType( DROPPED_CLIENT );
+			outPacket.SetData( ( wxInt8* )&color );
+			outPacket.SetSize( sizeof( wxInt32 ) );
+			outPacket.OwnsMemory( false );
+			BroadcastPacket( outPacket );
 		}
 	}
 
@@ -191,6 +199,12 @@ Server::Participant::Participant( wxSocketBase* connectedSocket, int color )
 Server::Participant::~Participant( void )
 {
 	delete socket;
+}
+
+//=====================================================================================
+int Server::Participant::Color( void )
+{
+	return color;
 }
 
 // ChiCheServer.cpp

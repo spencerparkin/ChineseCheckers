@@ -18,6 +18,8 @@ namespace ChiChe
 		{
 			ID_HostGame = wxID_HIGHEST,
 			ID_JoinGame,
+			ID_LeaveGame,
+			ID_KillGame,
 			ID_Exit,
 			ID_About,
 			ID_Timer,
@@ -25,12 +27,17 @@ namespace ChiChe
 
 		void OnHostGame( wxCommandEvent& event );
 		void OnJoinGame( wxCommandEvent& event );
+		void OnLeaveGame( wxCommandEvent& event );
+		void OnKillGame( wxCommandEvent& event );
 		void OnExit( wxCommandEvent& event );
 		void OnAbout( wxCommandEvent& event );
 		void OnUpdateMenuItemUI( wxUpdateUIEvent& event );
 		void OnTimer( wxTimerEvent& event );
 		void OnClose( wxCloseEvent& event );
 		void OnActivate( wxActivateEvent& event );
+
+		void KillServer( void );
+		void KillClient( void );
 
 		Canvas* canvas;
 		wxTimer timer;
