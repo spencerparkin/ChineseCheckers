@@ -20,6 +20,8 @@
 		<p>
 		When the program is invoked, the application window appears as shown below.
 		</p>
+		
+		<center><img src="ProgramStartup.jpg"/></center>
 
 		<p>
 		As you can see, the screen is blank, but that's because we haven't joined
@@ -30,20 +32,29 @@
 		the "Game" menu as shown below.
 		</p>
 		
+		<center><img src="HostGameOption.jpg"/></center>
+		
 		<p>
 		Upon doing so, you are presented with a dialog box that asks you which colors
 		will participate in the game.  Anywhere from 2 to 6 participants can play a game.
 		</p>
 		
+		<center><img src="ParticipantsDialog.jpg"/></center>
+		
 		<p>
 		The next dialog box asks you to specify the port number upon which the game
 		server will listen for incoming connections from prospective clients.  Choose
-		an unused service number.
+		an unused service number.  The IP address of the server hosting the game will
+		be that of the computer upon which you are starting the server.
 		</p>
+		
+		<center><img src="ChoosePortDialog.jpg"/></center>
 		
 		<p>
 		If all goes well, you'll then receive the following message box.
 		</p>
+		
+		<center><img src="ServerInitSuccessDialog.jpg"/></center>
 		
 		<p>
 		Upon dissmisal of this message box, no game board appears, but that's okay.
@@ -53,7 +64,88 @@
 		
 		<h2>Joining a Game</h2>
 		
+		<p>
+		To join a game in progress somewhere on the network, begin by selecting the "Join Game"
+		option from the "Game" menu, as shown below.
+		
+		<center><img src="JoinGameOption.jpg"/></center>
+		
+		<p>
+		Once chosen, the program asks you for the IP address and port number of the
+		machine that is hosting the game.  Enter this information in the format of
+		the presented default, which is that of the machine you're currently on.
+		</p>
+		
+		<center><img src="EnterAddressOfHostDialog.jpg"/></center>
+		
+		<p>
+		Next, tell the program how you want to join the game.  Do you want to join
+		as a human or computer client?
+		</p>
+		
+		<center><img src="ChooseClientTypeDialog.jpg"/></center>
+		
+		<p>
+		As a human client, you have control of the
+		client when it's your turn to move your pieces along the game board.  As a computer
+		client, the computer will make those types of decisions for you.  The option to
+		join as a computer player lets you add more players to the game than you would
+		otherwise have in cases where, for example, you need or want a third or fourth
+		player, but don't have one.  Similarly, if you want to play the game, but don't
+		have someone to play it with, you can play against the computer by setting up a
+		2-player game pitting yourself against the computer.  At the time of this writing,
+		the computer isn't that smart, but should none-the-less be able to play the game,
+		and maybe even win, (if you let it.)
+		</p>
+		
+		<p>
+		Finally, if all goes well, you will be presented with the game board and be ready
+		to play the game when it's your turn.
+		</p>
+		
+		<center><img src="PlayingGame.jpg"/></center>
+		
 		<h2>Playing the Game</h2>
+		
+		<p>
+		This game is very easy to play.  The first thing to know is that you should
+		keep an eye on the status bar.  It will tell you who's turn it is at all times,
+		and therefore, when it's your turn to move your pieces along the board.
+		At any time, (whether or not it's your turn), you can click and drag with the
+		right mouse button in the main area of the window to orient the board.
+		Use the mouse wheel to zoom the board in and out.  Right-click on game pieces
+		to select them.  When it's your turn, the only pieces you'll be able to move
+		are those of the color to which you have been assigned by the game server.
+		(The status bar lets you know what color you are.)
+		</p>
+		
+		<p>
+		So how do you play this game?  Well, the objective is to get your pieces to
+		the opposite side of the board before any of your opponants.  Each color has
+		10 pieces, and beings in the zone of that color.  Blue is trying to get to
+		the cyan zone, (and vice-versa), green to the magenta zone, (and vice-versa),
+		and red to the yellow zone, (and vice-versa).  Once all of your pieces occupy
+		the target zone before anyone else, you win!  In the following example, blue has won the game.
+		</p>
+		
+		<center><img src="BlueWins.jpg"/></center>
+		
+		<p>
+		Now comes the part about legal moves.
+		When it's your turn, you can move any one of your pieces to an empty location on
+		the board, provided 1) that location is immediately adjacent to the moving piece's current
+		location, or 2) that location can be reached by one or more jumps over immediately
+		adjacent pieces of any color at each step.  To make a move, highlight the piece
+		you want by right-clicking on it with the mouse, then right-click on the empty board
+		location to which you want to move it.  If you've chosen a valid move, (and if
+		it's your turn), that move will be made, and it will become the next player's turn.
+		</p>
+		
+		<center><img src="GameInProgress.JPG"/></center>
+		
+		<p>
+		I hope you enjoy playing this game!  Please report any problems or bugs to spencer (dot) parkin (at) outlook (dot) com.
+		</p>
 		
 	</body>
 
