@@ -12,7 +12,7 @@ namespace ChiChe
 		Canvas( wxWindow* parent );
 		virtual ~Canvas( void );
 
-		void BindContext( void );
+		void BindContext( bool actuallyBind );
 
 		double FrameRate( void );
 

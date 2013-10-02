@@ -2,11 +2,6 @@
 
 #include "ChiChe.h"
 
-namespace ChiChe
-{
-	IMPLEMENT_APP( App )
-}
-
 using namespace ChiChe;
 
 //=====================================================================================
@@ -69,5 +64,8 @@ Frame* App::GetFrame( void )
 {
 	return wxApp::OnExit();
 }
+
+//=====================================================================================
+IMPLEMENT_APP( ChiChe::App )
 
 // ChiCheApp.cpp

@@ -35,12 +35,13 @@ Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList
 }
 
 //=====================================================================================
-void Canvas::BindContext( void )
+void Canvas::BindContext( bool actuallyBind )
 {
 	if( !context )
 		context = new wxGLContext( this );
 
-	SetCurrent( *context );
+	if( context && actuallyBind )
+		SetCurrent( *context );
 }
 
 //=====================================================================================
@@ -77,7 +78,7 @@ void Canvas::OnPaint( wxPaintEvent& event )
 //=====================================================================================
 void Canvas::PreRender( GLenum renderMode )
 {
-	BindContext();
+	BindContext( true );
 
 	glClearColor( 0.f, 0.f, 0.f, 1.f );
 	glEnable( GL_DEPTH_TEST );
@@ -131,7 +132,12 @@ void Canvas::PostRender( GLenum renderMode )
 //=====================================================================================
 void Canvas::OnSize( wxSizeEvent& event )
 {
-	BindContext();
+#ifdef __LINUX__
+	// TODO: Why can't or shouldn't we bind the context in the on-size event for Linux?  OpenGL must be bound before issuing gl-commands.
+	BindContext( false );
+#else //__LINUX__
+	BindContext( true );
+#endif //__LINUX__
 	wxSize size = event.GetSize();
 	glViewport( 0, 0, size.GetWidth(), size.GetHeight() );
 	double aspectRatio = double( size.GetWidth() ) / double( size.GetHeight() );
