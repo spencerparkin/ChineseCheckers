@@ -948,8 +948,8 @@ void Board::Location::Render( GLenum renderMode, bool highlight )
 		c3ga::vectorE3GA renderColor;
 		GetRenderColor( renderColor );
 
-		glLineWidth( 2.f );
 		glBegin( GL_LINES );
+		glLineWidth( 2.f );
 
 		for( int i = 0; i < ADJACENCIES; i++ )
 		{

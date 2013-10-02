@@ -8,7 +8,3 @@ Tasks
 	
  -- Actually test the program over a real network.  I have only tested the program
     on the loop-back device.
-
- -- BUG: Why do the pieces draw initially as wire-frame?  After clicking on a piece,
-    everything draws fine.  Why?
-
