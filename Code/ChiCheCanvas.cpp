@@ -40,7 +40,6 @@ void Canvas::BindContext( void )
 	if( !context )
 		context = new wxGLContext( this );
 
-	SetCurrent( *context );
 }
 
 //=====================================================================================
@@ -52,6 +51,7 @@ double Canvas::FrameRate( void )
 //=====================================================================================
 void Canvas::OnPaint( wxPaintEvent& event )
 {
+	SetCurrent( *context );
 	PreRender( GL_RENDER );
 
 	Client* client = wxGetApp().GetClient();
