@@ -1,0 +1,14 @@
+
+
+Tasks
+=====
+
+ -- The AI client needs improvement.  Keep existing AI client and add a better one.
+    The user can then select from "computer (easy)" or "computer (hard)".
+	
+ -- Actually test the program over a real network.  I have only tested the program
+    on the loop-back device.
+
+ -- BUG: Why do the pieces draw initially as wire-frame?  After clicking on a piece,
+    everything draws fine.  Why?
+
