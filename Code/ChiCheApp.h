@@ -29,7 +29,7 @@ namespace ChiChe
 	};
 
 	//=====================================================================================
-	DECLARE_APP( App );
 }
+DECLARE_APP( ChiChe::App );
 
 // ChiCheApp.h
