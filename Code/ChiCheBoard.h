@@ -34,6 +34,13 @@ namespace ChiChe
 		class Location;
 		class Piece;
 
+		struct Move
+		{
+			int sourceID;
+			int destinationID;
+		};
+
+		typedef std::list< Move > MoveList;
 		typedef std::list< int > MoveSequence;
 		typedef std::map< int, Location* > LocationMap;
 		typedef std::list< Piece* > PieceList;
@@ -103,8 +110,9 @@ namespace ChiChe
 		// Internalize the entire state of the game that is in the given packet.
 		bool SetGameState( const Socket::Packet& inPacket );
 
-		// Try to determine the best possible move that could be made by the given participant with the current game state.
-		bool FindBestMoveForParticipant( int color, int& sourceID, int& destinationID );
+		// Try to determine a good move that could be made by the given participant with the current game state that is based on various amounts of information.
+		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID );
+		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount );
 
 		// Tell us if any piece is still animating.
 		bool AnyPieceInMotion( void );
@@ -204,6 +212,28 @@ namespace ChiChe
 		DestinationMap* FindAllMovesForLocation( Location* location );
 		void FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap );
 		void DeleteMoves( SourceMap& sourceMap );
+
+		struct DecisionBasis
+		{
+			int color;
+			int zoneTarget;
+			Location* sourceVertexLocation;
+			Location* destinationVertexLocation;
+			c3ga::vectorE3GA generalMoveDirection;
+			Location* targetLocation;
+		};
+
+		bool GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBasis );
+
+		class MoveListVisitor
+		{
+		public:
+			virtual bool Visit( const MoveList& moveList ) = 0;
+		};
+
+		void VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor );
+		const MoveList* ReturnBetterMoveList( const MoveList* moveListA, const MoveList* moveListB, const DecisionBasis& decisionBasis );
+		double CalculateNetMoveDistance( const MoveList& moveList, const DecisionBasis& decisionBasis );
 
 		int participants;
 		int whosTurn;

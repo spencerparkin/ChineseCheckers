@@ -371,31 +371,44 @@ Board::Location* Board::FindZoneVertex( int zone )
 }
 
 //=====================================================================================
+bool Board::GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBasis )
+{
+	decisionBasis.color = color;
+	decisionBasis.zoneTarget = ZoneTarget( color );
+
+	// Calculate the general direction that we want to be moving.
+	decisionBasis.sourceVertexLocation = FindZoneVertex( color );
+	decisionBasis.destinationVertexLocation = FindZoneVertex( decisionBasis.zoneTarget );
+	if( !decisionBasis.sourceVertexLocation || !decisionBasis.destinationVertexLocation )
+		return false;		// This should never happen.
+	c3ga::vectorE3GA generalMoveDirection = c3ga::unit( decisionBasis.destinationVertexLocation->GetPosition() - decisionBasis.sourceVertexLocation->GetPosition() );
+
+	// Our target location is then an unoccupied location as close to the destination vertex location as possible.
+	decisionBasis.targetLocation = FindClosestUnoccupiedLocationInZone( decisionBasis.destinationVertexLocation->GetPosition(), decisionBasis.zoneTarget );
+
+	// In this case, we have either already won the game, or one or more opponents are completely occupying our target zone.
+	if( !decisionBasis.targetLocation )
+	{
+		// Go ahead and choose a target location that is closest to our target vertex in the nuetral zone.
+		decisionBasis.targetLocation = FindClosestUnoccupiedLocationInZone( decisionBasis.destinationVertexLocation->GetPosition(), NONE );
+		if( !decisionBasis.targetLocation )
+			return false;
+	}
+
+	return true;
+}
+
+//=====================================================================================
 // This algorithm doesn't try to anticipate a player's actions, think ahead, or anything
 // like that.  But one advantage it does have over a human player is that it can make
 // a decision based upon an evaluation of every possible move.  There is certainly
 // room for improvement here.
-bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinationID )
+bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID )
 {
-	// Calculate the general direction that we want to be moving.
-	int zoneTarget = ZoneTarget( color );
-	Location* sourceVertexLocation = FindZoneVertex( color );
-	Location* destinationVertexLocation = FindZoneVertex( zoneTarget );
-	if( !sourceVertexLocation || !destinationVertexLocation )
-		return false;		// This should never happen.
-	c3ga::vectorE3GA generalMoveDirection = c3ga::unit( destinationVertexLocation->GetPosition() - sourceVertexLocation->GetPosition() );
-
-	// Our target location is then an unoccupied location as close to the destination vertex location as possible.
-	Location* targetLocation = FindClosestUnoccupiedLocationInZone( destinationVertexLocation->GetPosition(), zoneTarget );
-
-	// In this case, we have either already won the game, or one or more opponents are completely occupying our target zone.
-	if( !targetLocation )
-	{
-		// Go ahead and choose a target location that is closest to our target vertex in the nuetral zone.
-		targetLocation = FindClosestUnoccupiedLocationInZone( destinationVertexLocation->GetPosition(), NONE );
-		if( !targetLocation )
-			return false;
-	}
+	// Gather the basic information upon which we'll make our decision of which move to choose.
+	DecisionBasis decisionBasis;
+	if( !GenerateDecisionBasisForColor( color, decisionBasis ) )
+		return false;
 
 	// Go create a big huge list of every possible move that we can possibly make.
 	SourceMap sourceMap;
@@ -422,19 +435,19 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			// Note that a smarter AI wouldn't necessarily do this, because such a move could
 			// lead to more advantageous moves, or such a move may have strategy involved.
 			double epsilon = 0.5;
-			double moveDistance = c3ga::lc( moveDirection, generalMoveDirection );
+			double moveDistance = c3ga::lc( moveDirection, decisionBasis.generalMoveDirection );
 			if( moveDistance < -epsilon )
 				continue;
-			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == zoneTarget || destinationLocation->GetZone() == color ) )
+			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == decisionBasis.zoneTarget || destinationLocation->GetZone() == color ) )
 				continue;
 
 			// Is this a move that gets us closer to the target?
-			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - targetLocation->GetPosition() );
-			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
+			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - decisionBasis.targetLocation->GetPosition() );
+			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - decisionBasis.targetLocation->GetPosition() );
 			if( sourceDistanceToTarget > destinationDistanceToTarget )
 			{
 				// Special case: Do not consider lateral moves for pieces that are already in the target zone.
-				if( fabs( moveDistance ) < epsilon && sourceLocation->GetZone() == zoneTarget )
+				if( fabs( moveDistance ) < epsilon && sourceLocation->GetZone() == decisionBasis.zoneTarget )
 					continue;
 
 				// Yes.  Is it better than our current move?
@@ -458,6 +471,106 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 	if( sourceID == -1 || destinationID == -1 )
 		return false;
 	return true;
+}
+
+//=====================================================================================
+bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount )
+{
+	DecisionBasis decisionBasis;
+	if( !GenerateDecisionBasisForColor( color, decisionBasis ) )
+		return false;
+
+	// Begin by generating the list of all possible moves we can make if we were aloud
+	// to take the given number of turns consecutively.
+	SourceMap sourceMap;
+	FindAllMovesForParticipant( color, sourceMap, turnCount );
+
+	class MoveListChooser : public MoveListVisitor
+	{
+	public:
+		virtual bool Visit( const MoveList& moveList ) override
+		{
+			if( bestMoveList.size() == 0 )
+				bestMoveList = moveList;
+			else
+				bestMoveList = *board->ReturnBetterMoveList( &bestMoveList, &moveList, *decisionBasis );
+			return true;
+		}
+
+		MoveList bestMoveList;
+		Board* board;
+		DecisionBasis* decisionBasis;
+	};
+
+	// Simply go choose the best move list.
+	MoveList moveList;
+	MoveListChooser moveListChooser;
+	moveListChooser.board = this;
+	moveListChooser.decisionBasis = &decisionBasis;
+	VisitAllMoveLists( sourceMap, moveList, &moveListChooser );
+
+	DeleteMoves( sourceMap );
+
+	moveList = moveListChooser.bestMoveList;
+	if( moveList.size() == 0 )
+		return false;
+
+	MoveList::iterator iter = moveList.begin();
+	Move move = *iter;
+	sourceID = move.sourceID;
+	destinationID = move.destinationID;
+	return true;
+}
+
+//=====================================================================================
+const Board::MoveList* Board::ReturnBetterMoveList( const MoveList* moveListA, const MoveList* moveListB, const DecisionBasis& decisionBasis )
+{
+	const MoveList* betterMoveList = 0;
+
+	double netMoveDistanceA = CalculateNetMoveDistance( *moveListA, decisionBasis );
+	double netMoveDistanceB = CalculateNetMoveDistance( *moveListB, decisionBasis );
+
+	// For now, just base our decision on the net move distance.
+	if( netMoveDistanceA > netMoveDistanceB )
+		betterMoveList = moveListA;
+	else
+		betterMoveList = moveListB;
+
+	// TODO: More work need to be done here.
+
+	return betterMoveList;
+}
+
+//=====================================================================================
+double Board::CalculateNetMoveDistance( const MoveList& moveList, const DecisionBasis& decisionBasis )
+{
+	return 0.0;
+}
+
+//=====================================================================================
+void Board::VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor )
+{
+	Move move;
+
+	for( SourceMap::const_iterator iter = sourceMap.begin(); iter != sourceMap.end(); iter++ )
+	{
+		move.sourceID = iter->first;
+
+		DestinationMap* destinationMap = iter->second;
+		for( DestinationMap::const_iterator iter = destinationMap->begin(); iter != destinationMap->end(); iter++ )
+		{
+			move.destinationID = iter->first;
+			moveList.push_back( move );
+
+			const SourceMap* newSourceMap = ( const SourceMap* )iter->second;
+			if( !newSourceMap && !moveListVisitor->Visit( moveList ) )
+				return;
+			else
+				VisitAllMoveLists( *newSourceMap, moveList, moveListVisitor );
+
+			moveList.pop_back();
+		}
+	}
 }
 
 //=====================================================================================

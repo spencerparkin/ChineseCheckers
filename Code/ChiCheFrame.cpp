@@ -139,14 +139,21 @@ void Frame::OnJoinGame( wxCommandEvent& event )
 
 	wxArrayString typeChoices;
 	typeChoices.Add( "Human" );
-	typeChoices.Add( "Computer" );
+	typeChoices.Add( "Computer (Smart)" );
+//	typeChoices.Add( "Computer (Smarter)" );
+//	typeChoices.Add( "Computer (Smartest)" );
 	wxSingleChoiceDialog singleChoiceDialog( this, wxT( "Will this be a human or computer client?" ), wxT( "Choose Client Type" ), typeChoices );
 	if( wxID_OK != singleChoiceDialog.ShowModal() )
 		return;
 
 	Client::Type clientType = Client::HUMAN;
-	if( singleChoiceDialog.GetStringSelection() == wxT( "Computer" ) )
-		clientType = Client::COMPUTER;
+	wxString selection = singleChoiceDialog.GetStringSelection();
+	if( selection == wxT( "Computer (Smart)" ) )
+		clientType = Client::COMPUTER_SMART;
+	else if( selection == wxT( "Computer (Smarter)" ) )
+		clientType = Client::COMPUTER_SMARTER;
+	else if( selection == wxT( "Computer (Smartest)" ) )
+		clientType = Client::COMPUTER_SMARTEST;
 
 	wxScopedPtr< Client > clientPtr;
 	clientPtr.reset( new Client( clientType ) );

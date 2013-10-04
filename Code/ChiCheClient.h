@@ -15,7 +15,9 @@ namespace ChiChe
 		enum Type
 		{
 			HUMAN,
-			COMPUTER,
+			COMPUTER_SMART,
+			COMPUTER_SMARTER,
+			COMPUTER_SMARTEST,
 		};
 
 		Client( Type type );

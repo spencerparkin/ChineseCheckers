@@ -129,7 +129,7 @@ bool Client::Run( void )
 	}
 
 	// If we're an computer participant, go run the AI logic.
-	while( type == COMPUTER )
+	while( type == COMPUTER_SMART || type == COMPUTER_SMARTER || type == COMPUTER_SMARTEST )
 	{
 		// There's nothing for us to do until the board is created.
 		if( !board )
@@ -156,7 +156,14 @@ bool Client::Run( void )
 		
 		// Okay, it's time to make our move.
 		int sourceID, destinationID;
-		if( !board->FindBestMoveForParticipant( color, sourceID, destinationID ) )
+		bool success = false;
+		if( type == COMPUTER_SMART )
+			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID );
+		else if( type == COMPUTER_SMARTER )
+			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 2 );
+		else if( type == COMPUTER_SMARTEST )
+			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 3 );
+		if( !success )
 		{
 			wxString textColor;
 			Board::ParticipantText( color, textColor );
