@@ -412,7 +412,6 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 		for( DestinationMap::iterator destinationMapIter = destinationMap->begin(); destinationMapIter != destinationMap->end(); destinationMapIter++ )
 		{
 			destinationID = destinationMapIter->first;
-			int edgeCount = destinationMapIter->second;
 
 			Location* sourceLocation = locationMap[ sourceID ];
 			Location* destinationLocation = locationMap[ destinationID ];
@@ -420,22 +419,22 @@ bool Board::FindBestMoveForParticipant( int color, int& sourceID, int& destinati
 			c3ga::vectorE3GA moveDirection = destinationLocation->GetPosition() - sourceLocation->GetPosition();
 
 			// Rule out a move right away if it is a digression of our objective.
+			// Note that a smarter AI wouldn't necessarily do this, because such a move could
+			// lead to more advantageous moves, or such a move may have strategy involved.
 			double epsilon = 0.5;
-			double projectedMoveDistance = c3ga::lc( generalMoveDirection, c3ga::unit( moveDirection ) );
-			if( projectedMoveDistance < -epsilon )
+			double moveDistance = c3ga::lc( moveDirection, generalMoveDirection );
+			if( moveDistance < -epsilon )
 				continue;
 			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == zoneTarget || destinationLocation->GetZone() == color ) )
 				continue;
 
+			// Is this a move that gets us closer to the target?
 			double sourceDistanceToTarget = c3ga::norm( sourceLocation->GetPosition() - targetLocation->GetPosition() );
 			double destinationDistanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
-			double moveDistance = c3ga::lc( moveDirection, generalMoveDirection );
-			
-			// Is this a move that gets us closer to the target?
 			if( sourceDistanceToTarget > destinationDistanceToTarget )
 			{
 				// Special case: Do not consider lateral moves for pieces that are already in the target zone.
-				if( fabs( projectedMoveDistance ) < epsilon && sourceLocation->GetZone() == zoneTarget )
+				if( fabs( moveDistance ) < epsilon && sourceLocation->GetZone() == zoneTarget )
 					continue;
 
 				// Yes.  Is it better than our current move?
@@ -483,7 +482,7 @@ Board::Location* Board::FindClosestUnoccupiedLocationInZone( const c3ga::vectorE
 }
 
 //=====================================================================================
-void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap )
+void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount /*= 1*/ )
 {
 	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
 	{
@@ -492,6 +491,33 @@ void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap )
 		{
 			DestinationMap* destinationMap = FindAllMovesForLocation( location );
 			sourceMap[ location->GetLocationID() ] = destinationMap;
+		}
+	}
+
+	if( turnCount > 1 )
+	{
+		for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
+		{
+			int sourceID = sourceMapIter->first;
+			DestinationMap* destinationMap = sourceMapIter->second;
+			for( DestinationMap::iterator destinationMapIter = destinationMap->begin(); destinationMapIter != destinationMap->end(); destinationMapIter++ )
+			{
+				int destinationID = destinationMapIter->first;
+
+				Board* board = new Board( participants, false );
+				Socket::Packet packet;
+				GetGameState( packet );
+				board->SetGameState( packet );
+
+				if( board->ApplyMoveSequenceInternally( sourceID, destinationID ) )
+				{
+					SourceMap* newSourceMap = new SourceMap();
+					board->FindAllMovesForParticipant( color, *newSourceMap, turnCount - 1 );
+					destinationMapIter->second = newSourceMap;
+				}
+
+				delete board;
+			}
 		}
 	}
 }
@@ -505,16 +531,16 @@ Board::DestinationMap* Board::FindAllMovesForLocation( Location* location )
 	{
 		Location* adjLocation = location->GetAdjacency(i);
 		if( adjLocation && adjLocation->GetOccupant() == NONE )
-			( *destinationMap )[ adjLocation->GetLocationID() ] = 1;
+			( *destinationMap )[ adjLocation->GetLocationID() ] = 0;
 	}
 
-	FindAllMovesForLocationRecursively( location, *destinationMap, 2 );
+	FindAllMovesForLocationRecursively( location, *destinationMap );
 
 	return destinationMap;
 }
 
 //=====================================================================================
-void Board::FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap, int edgeCount )
+void Board::FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap )
 {
 	location->Visited( true );
 
@@ -528,8 +554,8 @@ void Board::FindAllMovesForLocationRecursively( Location* location, DestinationM
 			{
 				if( !adjJumpLocation->Visited() )
 				{
-					destinationMap[ adjJumpLocation->GetLocationID() ] = edgeCount;
-					FindAllMovesForLocationRecursively( adjJumpLocation, destinationMap, edgeCount + 2 );
+					destinationMap[ adjJumpLocation->GetLocationID() ] = 0;
+					FindAllMovesForLocationRecursively( adjJumpLocation, destinationMap );
 				}
 			}
 		}
@@ -544,6 +570,15 @@ void Board::DeleteMoves( SourceMap& sourceMap )
 	for( SourceMap::iterator iter = sourceMap.begin(); iter != sourceMap.end(); iter++ )
 	{
 		DestinationMap* destinationMap = iter->second;
+		for( DestinationMap::iterator iter = destinationMap->begin(); iter != destinationMap->end(); iter++ )
+		{
+			SourceMap* newSourceMap = ( SourceMap* )iter->second;
+			if( newSourceMap )
+			{
+				DeleteMoves( *newSourceMap );
+				delete newSourceMap;
+			}
+		}
 		delete destinationMap;
 	}
 	sourceMap.clear();
@@ -766,19 +801,21 @@ bool Board::FindMoveSequenceRecursively( Location* currentLocation, Location* de
 }
 
 //=====================================================================================
-// Here we assume that the given move sequence is valid.
+// Here we assume that the given move sequence is valid.  Notice that here
+// we advance who's turn it is.  This is, by definition, part of the application
+// of a given move sequence.
 bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 {
 	int sourceID = *moveSequence.begin();
 	int destinationID = moveSequence.back();
 
+	if( !ApplyMoveSequenceInternally( sourceID, destinationID ) )
+		return false;
+
 	LocationMap::iterator iter = locationMap.find( sourceID );
 	Location* sourceLocation = iter->second;
 	iter = locationMap.find( destinationID );
 	Location* destinationLocation = iter->second;
-
-	destinationLocation->SetOccupant( sourceLocation->GetOccupant() );
-	sourceLocation->SetOccupant( NONE );
 
 	Piece* piece = sourceLocation->GetPiece();
 	destinationLocation->SetPiece( piece );
@@ -787,6 +824,30 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 		piece->ResetAnimation( moveSequence );
 
 	NextTurn();
+
+	return true;
+}
+
+//=====================================================================================
+// Notice that the turn is not advanced here.  Internally, we reserve the
+// right to apply a move without changing who's turn it is.
+bool Board::ApplyMoveSequenceInternally( int sourceID, int destinationID )
+{
+	LocationMap::iterator iter = locationMap.find( sourceID );
+	if( iter == locationMap.end() )
+		return false;
+	Location* sourceLocation = iter->second;
+
+	iter = locationMap.find( destinationID );
+	if( iter == locationMap.end() )
+		return false;
+	Location* destinationLocation = iter->second;
+
+	if( whosTurn != sourceLocation->GetOccupant() )
+		return false;
+
+	destinationLocation->SetOccupant( sourceLocation->GetOccupant() );
+	sourceLocation->SetOccupant( NONE );
 
 	return true;
 }
