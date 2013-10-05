@@ -398,6 +398,8 @@ bool Board::GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBas
 	return true;
 }
 
+// TODO: The AI should probably consider some moves that block opponents from making big moves.
+
 //=====================================================================================
 // This algorithm doesn't try to anticipate a player's actions, think ahead, or anything
 // like that.  But one advantage it does have over a human player is that it can make
