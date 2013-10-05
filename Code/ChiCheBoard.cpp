@@ -381,7 +381,7 @@ bool Board::GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBas
 	decisionBasis.destinationVertexLocation = FindZoneVertex( decisionBasis.zoneTarget );
 	if( !decisionBasis.sourceVertexLocation || !decisionBasis.destinationVertexLocation )
 		return false;		// This should never happen.
-	c3ga::vectorE3GA generalMoveDirection = c3ga::unit( decisionBasis.destinationVertexLocation->GetPosition() - decisionBasis.sourceVertexLocation->GetPosition() );
+	decisionBasis.generalMoveDirection = c3ga::unit( decisionBasis.destinationVertexLocation->GetPosition() - decisionBasis.sourceVertexLocation->GetPosition() );
 
 	// Our target location is then an unoccupied location as close to the destination vertex location as possible.
 	decisionBasis.targetLocation = FindClosestUnoccupiedLocationInZone( decisionBasis.destinationVertexLocation->GetPosition(), decisionBasis.zoneTarget );
@@ -417,7 +417,7 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 	// Now try to choose the best move from among this list.
 	// It is not clear as to the correctness of this algorithm, which would be that it always converges to a win.
 	double largestMoveDistance = -1.0;
-	int bestMove[2] = { -1, -1 };
+	Move bestMove = { -1, -1 };
 	for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
 	{
 		sourceID = sourceMapIter->first;
@@ -434,7 +434,7 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 			// Rule out a move right away if it is a digression of our objective.
 			// Note that a smarter AI wouldn't necessarily do this, because such a move could
 			// lead to more advantageous moves, or such a move may have strategy involved.
-			double epsilon = 0.5;
+			double epsilon = 1e-4;
 			double moveDistance = c3ga::lc( moveDirection, decisionBasis.generalMoveDirection );
 			if( moveDistance < -epsilon )
 				continue;
@@ -454,8 +454,8 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 				if( largestMoveDistance == -1.0 || moveDistance > largestMoveDistance )
 				{
 					// Yes.  Keep it.
-					bestMove[0] = sourceID;
-					bestMove[1] = destinationID;
+					bestMove.sourceID = sourceID;
+					bestMove.destinationID = destinationID;
 					largestMoveDistance = moveDistance;
 				}
 			}
@@ -466,8 +466,8 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 	DeleteMoves( sourceMap );
 
 	// Return our best move to the caller.
-	sourceID = bestMove[0];
-	destinationID = bestMove[1];
+	sourceID = bestMove.sourceID;
+	destinationID = bestMove.destinationID;
 	if( sourceID == -1 || destinationID == -1 )
 		return false;
 	return true;

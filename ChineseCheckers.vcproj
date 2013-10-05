@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../wxWidgets/include; ../wxWidgets/include/msvc"
+				AdditionalIncludeDirectories="../wxWidgets-2.9.5/include; ../wxWidgets-2.9.5/include/msvc"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -68,7 +68,7 @@
 				AdditionalDependencies="wxmsw29ud_core.lib wxbase29ud.lib wxmsw29ud_gl.lib comctl32.lib rpcrt4.lib advapi32.lib wsock32.lib kernel32.lib user32.lib gdi32.lib winspool.lib opengl32.lib glu32.lib"
 				OutputFile="Build/$(ConfigurationName)/$(ProjectName).exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;../wxWidgets/lib/vc_dll&quot;"
+				AdditionalLibraryDirectories="&quot;../wxWidgets-2.9.5/lib/vc_dll&quot;"
 				ManifestFile="Build/$(ConfigurationName)/$(TargetFileName).intermediate.manifest"
 				GenerateDebugInformation="true"
 				SubSystem="2"
