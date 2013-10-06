@@ -204,6 +204,7 @@ namespace ChiChe
 		void NextTurn( void );
 		void IncrementTurn( void );
 
+		Location* FindTargetLocation( int zoneTarget );
 		bool ApplyMoveSequenceInternally( int sourceID, int destinationID );
 		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
 		Location* FindZoneVertex( int zone );
@@ -232,8 +233,9 @@ namespace ChiChe
 		};
 
 		void VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor );
-		const MoveList* ReturnBetterMoveList( const MoveList* moveListA, const MoveList* moveListB, const DecisionBasis& decisionBasis );
+
 		double CalculateNetMoveDistance( const MoveList& moveList, const DecisionBasis& decisionBasis );
+		double CalculateNetDistanceToTargets( const MoveList& moveList, const DecisionBasis& decisionBasis );
 
 		int participants;
 		int whosTurn;
