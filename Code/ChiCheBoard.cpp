@@ -653,10 +653,10 @@ void Board::VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, Mo
 			moveList.push_back( move );
 
 			const SourceMap* newSourceMap = ( const SourceMap* )iter->second;
-			if( !newSourceMap && !moveListVisitor->Visit( moveList ) )
-				return;
-			else
+			if( newSourceMap )
 				VisitAllMoveLists( *newSourceMap, moveList, moveListVisitor );
+			else if( !moveListVisitor->Visit( moveList ) )
+				return;
 
 			moveList.pop_back();
 		}
