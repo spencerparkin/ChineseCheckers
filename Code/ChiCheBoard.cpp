@@ -587,19 +587,15 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 // Through the given sequence of moves, sum the distances we get to each new target location.
 double Board::CalculateNetDistanceToTargets( const MoveList& moveList, const DecisionBasis& decisionBasis )
 {
-	Board* board = new Board( participants, false );
-	Socket::Packet packet;
-	GetGameState( packet );
-	board->SetGameState( packet );
-
 	double netDistanceToTargets = 0.0;
+	MoveList undoMoveList;
 
 	for( MoveList::const_iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
 	{
-		if( board->DetermineWinner() == decisionBasis.color )
+		if( DetermineWinner() == decisionBasis.color )
 			break;
 
-		Location* targetLocation = board->FindTargetLocation( decisionBasis.zoneTarget );
+		Location* targetLocation = FindTargetLocation( decisionBasis.zoneTarget );
 
 		Move move = *iter;
 		Location* destinationLocation = locationMap[ move.destinationID ];
@@ -607,11 +603,23 @@ double Board::CalculateNetDistanceToTargets( const MoveList& moveList, const Dec
 		double distanceToTarget = c3ga::norm( destinationLocation->GetPosition() - targetLocation->GetPosition() );
 		netDistanceToTargets += distanceToTarget;
 
-		bool moveApplied = board->ApplyMoveSequenceInternally( move.sourceID, move.destinationID );
+		bool moveApplied = ApplyMoveInternally( move );
 		wxASSERT( moveApplied );
+
+		Move undoMove;
+		undoMove.sourceID = move.destinationID;
+		undoMove.destinationID = move.sourceID;
+		undoMoveList.push_front( undoMove );
 	}
 
-	delete board;
+	// We altered the board to make our calculations, but we must leave the board invariant.
+	// Go undo the changes that we have made.
+	for( MoveList::iterator iter = undoMoveList.begin(); iter != undoMoveList.end(); iter++ )
+	{
+		Move undoMove = *iter;
+		bool undoMoveApplied = ApplyMoveInternally( undoMove );
+		wxASSERT( undoMoveApplied );
+	}
 
 	return netDistanceToTargets;
 }
@@ -707,19 +715,19 @@ void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int tur
 			{
 				int destinationID = destinationMapIter->first;
 
-				Board* board = new Board( participants, false );
-				Socket::Packet packet;
-				GetGameState( packet );
-				board->SetGameState( packet );
+				Move undoMove;
+				undoMove.sourceID = destinationID;
+				undoMove.destinationID = sourceID;
 
-				if( board->ApplyMoveSequenceInternally( sourceID, destinationID ) )
-				{
-					SourceMap* newSourceMap = new SourceMap();
-					board->FindAllMovesForParticipant( color, *newSourceMap, turnCount - 1 );
-					destinationMapIter->second = newSourceMap;
-				}
+				bool moveApplied = ApplyMoveInternally( sourceID, destinationID );
+				wxASSERT( moveApplied );
+				
+				SourceMap* newSourceMap = new SourceMap();
+				FindAllMovesForParticipant( color, *newSourceMap, turnCount - 1 );
+				destinationMapIter->second = newSourceMap;
 
-				delete board;
+				bool undoMoveApplied = ApplyMoveInternally( undoMove );
+				wxASSERT( undoMoveApplied );
 			}
 		}
 	}
@@ -1012,7 +1020,7 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 	int sourceID = *moveSequence.begin();
 	int destinationID = moveSequence.back();
 
-	if( !ApplyMoveSequenceInternally( sourceID, destinationID ) )
+	if( !ApplyMoveInternally( sourceID, destinationID ) )
 		return false;
 
 	LocationMap::iterator iter = locationMap.find( sourceID );
@@ -1032,9 +1040,15 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 }
 
 //=====================================================================================
+bool Board::ApplyMoveInternally( const Move& move )
+{
+	return ApplyMoveInternally( move.sourceID, move.destinationID );
+}
+
+//=====================================================================================
 // Notice that the turn is not advanced here.  Internally, we reserve the
 // right to apply a move without changing who's turn it is.
-bool Board::ApplyMoveSequenceInternally( int sourceID, int destinationID )
+bool Board::ApplyMoveInternally( int sourceID, int destinationID )
 {
 	LocationMap::iterator iter = locationMap.find( sourceID );
 	if( iter == locationMap.end() )
@@ -1047,6 +1061,8 @@ bool Board::ApplyMoveSequenceInternally( int sourceID, int destinationID )
 	Location* destinationLocation = iter->second;
 
 	if( whosTurn != sourceLocation->GetOccupant() )
+		return false;
+	if( destinationLocation->GetOccupant() != NONE )
 		return false;
 
 	destinationLocation->SetOccupant( sourceLocation->GetOccupant() );

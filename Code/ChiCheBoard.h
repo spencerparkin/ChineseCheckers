@@ -205,7 +205,8 @@ namespace ChiChe
 		void IncrementTurn( void );
 
 		Location* FindTargetLocation( int zoneTarget );
-		bool ApplyMoveSequenceInternally( int sourceID, int destinationID );
+		bool ApplyMoveInternally( int sourceID, int destinationID );
+		bool ApplyMoveInternally( const Move& move );
 		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
 		Location* FindZoneVertex( int zone );
 		Location* FindClosestUnoccupiedLocationInZone( const c3ga::vectorE3GA& position, int zone );
