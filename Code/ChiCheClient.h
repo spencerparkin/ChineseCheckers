@@ -39,6 +39,7 @@ namespace ChiChe
 		int color;
 		int selectedLocationID;
 		bool movePacketSent;
+		Board::MoveMemory moveMemory;
 	};
 }
 

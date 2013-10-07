@@ -160,9 +160,9 @@ bool Client::Run( void )
 		if( type == COMPUTER_LEVEL_1 )
 			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID );
 		else if( type == COMPUTER_LEVEL_2 )
-			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 2 );
+			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 2, moveMemory );
 		else if( type == COMPUTER_LEVEL_3 )
-			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 3 );
+			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 3, moveMemory );
 		if( !success )
 		{
 			wxString textColor;

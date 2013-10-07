@@ -487,97 +487,123 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 }
 
 //=====================================================================================
-bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount )
+// BUG: When our marble gets into the target zone, it bounces back and forth
+//      between target locations.  This is very dumb.
+bool Board::FindGoodMoveForParticipant(
+						int color, int& sourceID, int& destinationID,
+						int turnCount, MoveMemory& moveMemory )
 {
-	DecisionBasis decisionBasis;
-	if( !GenerateDecisionBasisForColor( color, decisionBasis ) )
-		return false;
-
-	//
-	// Step 1) Begin by generating the list of all possible moves we can make
-	//         if we were aloud to take the given number of turns consecutively.
-	//
-
-	SourceMap sourceMap;
-	FindAllMovesForParticipant( color, sourceMap, turnCount );
-
-	//
-	// Step 2) Perform an analysis of all the possible moves we could make.
-	//         Filter out any moves that think we shouldn't consider further.
-	//
-
-	struct MoveListAnalysis
+	// If a move list is in play, but the current move is
+	// no longer valid, invalidate the entire move list.
+	if( moveMemory.moveListInPlay.size() > 0 )
 	{
-		MoveList moveList;
-		double netMoveDistance;
-		double netDistanceToTargets;
-	};
-
-	typedef std::list< MoveListAnalysis > MoveListAnalysisList;
-
-	class MoveListAnalyzer : public MoveListVisitor
-	{
-	public:
-		virtual bool Visit( const MoveList& moveList ) override
-		{
-			// For simplicity, rule out moves that take us out of the diamond
-			// formed by the home zone, neutral zone and target zone.
-			MoveList::const_iterator iter = moveList.begin();
-			Move move = *iter;
-			Location* destinationLocation = board->locationMap[ move.destinationID ];
-			if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == decisionBasis->zoneTarget || destinationLocation->GetZone() == decisionBasis->color ) )
-				return true;
-			
-			MoveListAnalysis moveListAnalysis;
-			moveListAnalysis.moveList = moveList;
-			moveListAnalysis.netMoveDistance = board->CalculateNetMoveDistance( moveList, *decisionBasis );
-			moveListAnalysis.netDistanceToTargets = board->CalculateNetDistanceToTargets( moveList, *decisionBasis );
-			moveListAnalysisList->push_back( moveListAnalysis );
-			return true;
-		}
-
-		MoveListAnalysisList* moveListAnalysisList;
-		Board* board;
-		DecisionBasis* decisionBasis;
-	};
-
-	MoveList moveList;
-	MoveListAnalyzer moveListAnalyzer;
-	MoveListAnalysisList moveListAnalysisList;
-	moveListAnalyzer.moveListAnalysisList = &moveListAnalysisList;
-	moveListAnalyzer.board = this;
-	moveListAnalyzer.decisionBasis = &decisionBasis;
-	VisitAllMoveLists( sourceMap, moveList, &moveListAnalyzer );
-
-	DeleteMoves( sourceMap );
-
-	//
-	// Step 3) Now go choose from among the analyized set of moves the one
-	//         that we believe is the best.
-	//
-
-	MoveListAnalysis bestMoveListAnalysis;
-	for( MoveListAnalysisList::iterator iter = moveListAnalysisList.begin(); iter != moveListAnalysisList.end(); iter++ )
-	{
-		MoveListAnalysis moveListAnalysis = *iter;
-
-		if( bestMoveListAnalysis.moveList.size() != 0 )
-		{
-			if( bestMoveListAnalysis.netDistanceToTargets < moveListAnalysis.netDistanceToTargets )
-				continue;
-
-			if( bestMoveListAnalysis.netMoveDistance > moveListAnalysis.netMoveDistance )
-				continue;
-		}
-
-		bestMoveListAnalysis = moveListAnalysis;
+		Move move = *moveMemory.moveListInPlay.begin();
+		MoveSequence moveSequence;
+		if( !FindMoveSequence( move, moveSequence ) )
+			moveMemory.moveListInPlay.clear();
 	}
 
-	moveList = bestMoveListAnalysis.moveList;
-	if( moveList.size() == 0 )
+	// We don't have a move list in play, we need to generate one.
+	if( moveMemory.moveListInPlay.size() == 0 )
+	{
+		DecisionBasis decisionBasis;
+		if( !GenerateDecisionBasisForColor( color, decisionBasis ) )
+			return false;
+
+		//
+		// Step 1) Begin by generating the list of all possible moves we can make
+		//         if we were aloud to take the given number of turns consecutively.
+		//
+
+		SourceMap sourceMap;
+		FindAllMovesForParticipant( color, sourceMap, turnCount );
+
+		//
+		// Step 2) Perform an analysis of all the possible moves we could make.
+		//         Filter out any moves that we think we shouldn't consider further.
+		//
+
+		struct MoveListAnalysis
+		{
+			MoveList moveList;
+			double netMoveDistance;
+			double netDistanceToTargets;
+		};
+
+		typedef std::list< MoveListAnalysis > MoveListAnalysisList;
+
+		class MoveListAnalyzer : public MoveListVisitor
+		{
+		public:
+			virtual bool Visit( const MoveList& moveList ) override
+			{
+				// For simplicity, rule out moves that take us out of the diamond
+				// formed by the home zone, neutral zone and target zone.
+				MoveList::const_iterator iter = moveList.begin();
+				Move move = *iter;
+				Location* destinationLocation = board->locationMap[ move.destinationID ];
+				if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == decisionBasis->zoneTarget || destinationLocation->GetZone() == decisionBasis->color ) )
+					return true;
+
+				// TODO: We should also rule out move lists that have any degenerate move sequences.
+				//       For example, don't move a piece one way, then move it back.  That's dumb.
+				//for( iter = moveList.begin(); 
+				
+				MoveListAnalysis moveListAnalysis;
+				moveListAnalysis.moveList = moveList;
+				moveListAnalysis.netMoveDistance = board->CalculateNetMoveDistance( moveList, *decisionBasis );
+				moveListAnalysis.netDistanceToTargets = board->CalculateNetDistanceToTargets( moveList, *decisionBasis );
+				moveListAnalysisList->push_back( moveListAnalysis );
+				return true;
+			}
+
+			MoveListAnalysisList* moveListAnalysisList;
+			Board* board;
+			DecisionBasis* decisionBasis;
+		};
+
+		MoveList moveList;
+		MoveListAnalyzer moveListAnalyzer;
+		MoveListAnalysisList moveListAnalysisList;
+		moveListAnalyzer.moveListAnalysisList = &moveListAnalysisList;
+		moveListAnalyzer.board = this;
+		moveListAnalyzer.decisionBasis = &decisionBasis;
+		VisitAllMoveLists( sourceMap, moveList, &moveListAnalyzer );
+
+		DeleteMoves( sourceMap );
+
+		//
+		// Step 3) Now go choose from among the analyized set of moves the one
+		//         that we believe is the best.
+		//
+
+		MoveListAnalysis bestMoveListAnalysis;
+		for( MoveListAnalysisList::iterator iter = moveListAnalysisList.begin(); iter != moveListAnalysisList.end(); iter++ )
+		{
+			MoveListAnalysis moveListAnalysis = *iter;
+
+			if( bestMoveListAnalysis.moveList.size() != 0 )
+			{
+				if( bestMoveListAnalysis.netMoveDistance > moveListAnalysis.netMoveDistance )
+					continue;
+
+				if( bestMoveListAnalysis.netDistanceToTargets < moveListAnalysis.netDistanceToTargets )
+					continue;
+			}
+
+			bestMoveListAnalysis = moveListAnalysis;
+		}
+
+		moveMemory.moveListInPlay = bestMoveListAnalysis.moveList;
+	}
+
+	// If we get here without a move list in play, we have failed.
+	if( moveMemory.moveListInPlay.size() == 0 )
 		return false;
 
-	Move move = *moveList.begin();
+	// Return the next move on our move list.
+	Move move = *moveMemory.moveListInPlay.begin();
+	moveMemory.moveListInPlay.pop_front();
 	sourceID = move.sourceID;
 	destinationID = move.destinationID;
 	return true;
@@ -589,6 +615,8 @@ double Board::CalculateNetDistanceToTargets( const MoveList& moveList, const Dec
 {
 	double netDistanceToTargets = 0.0;
 	MoveList undoMoveList;
+
+	LocationList targetsAchievedList;
 
 	for( MoveList::const_iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
 	{
@@ -606,10 +634,20 @@ double Board::CalculateNetDistanceToTargets( const MoveList& moveList, const Dec
 		bool moveApplied = ApplyMoveInternally( move );
 		wxASSERT( moveApplied );
 
+		if( targetLocation->GetOccupant() == decisionBasis.color )
+			targetsAchievedList.push_back( targetLocation );
+
 		Move undoMove;
 		undoMove.sourceID = move.destinationID;
 		undoMove.destinationID = move.sourceID;
 		undoMoveList.push_front( undoMove );
+
+		for( LocationList::iterator iter = targetsAchievedList.begin(); iter != targetsAchievedList.end(); iter++ )
+		{
+			Location* location = *iter;
+			if( location->GetOccupant() != decisionBasis.color )
+				netDistanceToTargets += 1000000.0;
+		}
 	}
 
 	// We altered the board to make our calculations, but we must leave the board invariant.
@@ -932,6 +970,12 @@ int Board::FindSelectedLocation( unsigned int* hitBuffer, int hitBufferSize, int
 }
 
 //=====================================================================================
+bool Board::FindMoveSequence( const Move& move, MoveSequence& moveSequence )
+{
+	return FindMoveSequence( move.sourceID, move.destinationID, moveSequence );
+}
+
+//=====================================================================================
 bool Board::FindMoveSequence( int sourceID, int destinationID, MoveSequence& moveSequence )
 {
 	moveSequence.clear();
@@ -1047,7 +1091,10 @@ bool Board::ApplyMoveInternally( const Move& move )
 
 //=====================================================================================
 // Notice that the turn is not advanced here.  Internally, we reserve the
-// right to apply a move without changing who's turn it is.
+// right to apply a move without changing who's turn it is.  Furthermore,
+// it is important to note here that if the move fails to apply here, then
+// it was an invalid move.  However(!), the converse of this statement is not true!
+// To check the validity of a move, you must be able to find its move sequence.
 bool Board::ApplyMoveInternally( int sourceID, int destinationID )
 {
 	LocationMap::iterator iter = locationMap.find( sourceID );

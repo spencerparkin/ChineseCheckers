@@ -40,13 +40,22 @@ namespace ChiChe
 			int destinationID;
 		};
 
-		typedef std::list< Move > MoveList;
-		typedef std::list< int > MoveSequence;
+		typedef std::list< Move > MoveList;		// This is what one might also call a move sequence.  It is a sequence of moves made over one or more turns.
+		typedef std::list< int > MoveSequence;	// Despite the name, this is just a sequence of moves that can be made in a single turn.
 		typedef std::map< int, Location* > LocationMap;
+		typedef std::list< Location* > LocationList;
 		typedef std::list< Piece* > PieceList;
 		typedef std::map< int, bool > VisitationMap;
 		typedef std::map< int, void* > DestinationMap;
 		typedef std::map< int, DestinationMap* > SourceMap;
+
+		// This structure is used by the computer player logic, and
+		// the same instance of it is expected to be passed to that
+		// logic each turn it is given a chance to play.
+		struct MoveMemory
+		{
+			MoveList moveListInPlay;
+		};
 
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
@@ -100,6 +109,7 @@ namespace ChiChe
 		// If a valid sequence of moves exists from the given source location to the given destination location, return it as a move sequence.
 		// Note that this also takes into account who's turn it is.
 		bool FindMoveSequence( int sourceID, int destinationID, MoveSequence& moveSequence );
+		bool FindMoveSequence( const Move& move, MoveSequence& moveSequence );
 
 		// Change the state of the game board by the given move sequence.  This will also change who's turn it is.
 		bool ApplyMoveSequence( const MoveSequence& moveSequence );
@@ -112,7 +122,7 @@ namespace ChiChe
 
 		// Try to determine a good move that could be made by the given participant with the current game state that is based on various amounts of information.
 		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID );
-		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount );
+		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount, MoveMemory& moveMemory );
 
 		// Tell us if any piece is still animating.
 		bool AnyPieceInMotion( void );
