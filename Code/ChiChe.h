@@ -18,6 +18,7 @@
 #include <wx/msgdlg.h>
 #include <wx/tokenzr.h>
 #include <wx/time.h>
+#include <wx/event.h>
 
 // OpenGL:
 #include <GL/gl.h>

@@ -14,6 +14,9 @@ namespace ChiChe
 			GAME_MOVE,
 			GAME_STATE,
 			DROPPED_CLIENT,
+			BEGIN_COMPUTER_THINKING,
+			UPDATE_COMPUTER_THINKING,
+			END_COMPUTER_THINKING,
 		};
 
 		Server( int participants );
@@ -48,7 +51,7 @@ namespace ChiChe
 
 		bool ServiceClient( Participant* participant );
 
-		void BroadcastPacket( Socket::Packet& outPacket );
+		void BroadcastPacket( Socket::Packet& outPacket, Participant* excludedParticipant = 0 );
 
 		Board* board;
 		wxSocketServer* socketServer;

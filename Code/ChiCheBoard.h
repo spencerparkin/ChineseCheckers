@@ -9,6 +9,29 @@ namespace ChiChe
 	{
 	public:
 
+		//=====================================================================================
+		class Event : public wxEvent
+		{
+		public:
+
+			Event( int winid = 0, wxEventType commandType = wxEVT_NULL );
+			virtual ~Event( void );
+
+			virtual wxEvent* Clone( void ) const override;
+
+			void SetMessage( const wxString message );
+			wxString GetMessage( void ) const;
+
+		private:
+
+			wxString message;
+		};
+
+		//=================================================================================
+		static const wxEventTypeTag< Event > BEGIN_BOARD_THINKING;
+		static const wxEventTypeTag< Event > UPDATE_BOARD_THINKING;
+		static const wxEventTypeTag< Event > END_BOARD_THINKING;
+
 		enum
 		{
 			ADJACENCIES = 6,
@@ -60,6 +83,10 @@ namespace ChiChe
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
 		~Board( void );
+
+		// Provide access to the board's event handler.
+		void SetEventHandler( wxEvtHandler* eventHandler );
+		wxEvtHandler* GetEventHandler( void );
 
 		// Which zone are pieces of the given color trying to get to?
 		static int ZoneTarget( int color );
@@ -220,7 +247,7 @@ namespace ChiChe
 		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
 		Location* FindZoneVertex( int zone );
 		Location* FindClosestUnoccupiedLocationInZone( const c3ga::vectorE3GA& position, int zone );
-		void FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount = 1 );
+		void FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount = 1, bool sendEvents = true );
 		DestinationMap* FindAllMovesForLocation( Location* location );
 		void FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap );
 		void DeleteMoves( SourceMap& sourceMap );
@@ -244,13 +271,17 @@ namespace ChiChe
 		{
 		public:
 			virtual bool Visit( const MoveList& moveList ) = 0;
+			virtual wxString FormulateThinkingMessage( double percentageComplete ) = 0;
 		};
 
-		void VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor );
+		void VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor, bool sendEvent = true );
 
 		double CalculateNetMoveDistance( const MoveList& moveList, const DecisionBasis& decisionBasis );
 		double CalculateNetDistanceToTargets( const MoveList& moveList, const DecisionBasis& decisionBasis );
 
+		void SendEvent( wxEventType eventType, const wxString message );
+
+		wxEvtHandler* eventHandler;
 		int participants;
 		int whosTurn;
 		LocationMap locationMap;

@@ -36,6 +36,8 @@ Board::Board( int participants, bool animate )
 	whosTurn = NONE;
 	NextTurn();
 
+	eventHandler = 0;
+
 	CreateGraph();
 }
 
@@ -43,6 +45,18 @@ Board::Board( int participants, bool animate )
 Board::~Board( void )
 {
 	DestroyGraph();
+}
+
+//=====================================================================================
+void Board::SetEventHandler( wxEvtHandler* eventHandler )
+{
+	this->eventHandler = eventHandler;
+}
+
+//=====================================================================================
+wxEvtHandler* Board::GetEventHandler( void )
+{
+	return eventHandler;
 }
 
 //=====================================================================================
@@ -487,8 +501,20 @@ bool Board::FindGoodMoveForParticipant( int color, int& sourceID, int& destinati
 }
 
 //=====================================================================================
-// BUG: When our marble gets into the target zone, it bounces back and forth
-//      between target locations.  This is very dumb.
+void Board::SendEvent( wxEventType eventType, const wxString message )
+{
+	if( eventHandler )
+	{
+		Event event( 0, eventType );
+		event.SetMessage( message );
+		eventHandler->SafelyProcessEvent( event );
+	}
+}
+
+//=====================================================================================
+// TODO: The AI here is getting better, but the end-game needs a lot of work.
+//       Specifically, when we detect that we're nearing our end-game, we need
+//       to switch over to a different hueristic that involves the target location.
 bool Board::FindGoodMoveForParticipant(
 						int color, int& sourceID, int& destinationID,
 						int turnCount, MoveMemory& moveMemory )
@@ -506,6 +532,10 @@ bool Board::FindGoodMoveForParticipant(
 	// We don't have a move list in play, we need to generate one.
 	if( moveMemory.moveListInPlay.size() == 0 )
 	{
+		wxString textColor;
+		ParticipantText( color, textColor );
+		SendEvent( BEGIN_BOARD_THINKING, "Player " + textColor + " is thinking..." );
+
 		DecisionBasis decisionBasis;
 		if( !GenerateDecisionBasisForColor( color, decisionBasis ) )
 			return false;
@@ -555,6 +585,13 @@ bool Board::FindGoodMoveForParticipant(
 				return true;
 			}
 
+			virtual wxString FormulateThinkingMessage( double percentageComplete ) override
+			{
+				wxString textColor;
+				Board::ParticipantText( decisionBasis->color, textColor );
+				return "Player " + textColor + wxString::Format( " thinking: Move analysis: %1.2f%%", percentageComplete );
+			}
+
 			MoveListAnalysisList* moveListAnalysisList;
 			Board* board;
 			DecisionBasis* decisionBasis;
@@ -579,6 +616,8 @@ bool Board::FindGoodMoveForParticipant(
 		//         never moved by the computer at all.
 		//
 
+		int count = 0;
+		int maxCount = moveListAnalysisList.size();
 		MoveListAnalysis bestMoveListAnalysis;
 		for( MoveListAnalysisList::iterator iter = moveListAnalysisList.begin(); iter != moveListAnalysisList.end(); iter++ )
 		{
@@ -594,9 +633,14 @@ bool Board::FindGoodMoveForParticipant(
 			}
 
 			bestMoveListAnalysis = moveListAnalysis;
+
+			double percentageComplete = double( ++count ) / double( maxCount ) * 100.0;
+			SendEvent( UPDATE_BOARD_THINKING, "Player " + textColor + wxString::Format( " thinking: Move choice: %1.2f%%", percentageComplete ) );
 		}
 
 		moveMemory.moveListInPlay = bestMoveListAnalysis.moveList;
+
+		SendEvent( END_BOARD_THINKING, wxEmptyString );
 	}
 
 	// If we get here without a move list in play, we have failed.
@@ -724,9 +768,17 @@ double Board::CalculateNetMoveDistance( const MoveList& moveList, const Decision
 }
 
 //=====================================================================================
-void Board::VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor )
+void Board::VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList,
+									MoveListVisitor* moveListVisitor,
+									bool sendEvent /*= true*/ )
 {
 	Move move;
+
+	int count = 0;
+	int maxCount = 0;
+	if( sendEvent )
+		for( SourceMap::const_iterator iter = sourceMap.begin(); iter != sourceMap.end(); iter++ )
+			maxCount += iter->second->size();
 
 	for( SourceMap::const_iterator iter = sourceMap.begin(); iter != sourceMap.end(); iter++ )
 	{
@@ -740,11 +792,18 @@ void Board::VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, Mo
 
 			const SourceMap* newSourceMap = ( const SourceMap* )iter->second;
 			if( newSourceMap )
-				VisitAllMoveLists( *newSourceMap, moveList, moveListVisitor );
+				VisitAllMoveLists( *newSourceMap, moveList, moveListVisitor, false );
 			else if( !moveListVisitor->Visit( moveList ) )
 				return;
 
 			moveList.pop_back();
+
+			if( sendEvent )
+			{
+				double percentageComplete = double( ++count ) / double( maxCount ) * 100.0;
+				wxString message = moveListVisitor->FormulateThinkingMessage( percentageComplete );
+				SendEvent( UPDATE_BOARD_THINKING, message );
+			}
 		}
 	}
 }
@@ -771,7 +830,7 @@ Board::Location* Board::FindClosestUnoccupiedLocationInZone( const c3ga::vectorE
 }
 
 //=====================================================================================
-void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount /*= 1*/ )
+void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount /*= 1*/, bool sendEvents /*= true*/ )
 {
 	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
 	{
@@ -785,6 +844,12 @@ void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int tur
 
 	if( turnCount > 1 )
 	{
+		int count = 0;
+		int maxCount = 0;
+		if( sendEvents )
+			for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
+				maxCount += sourceMapIter->second->size();
+
 		for( SourceMap::iterator sourceMapIter = sourceMap.begin(); sourceMapIter != sourceMap.end(); sourceMapIter++ )
 		{
 			int sourceID = sourceMapIter->first;
@@ -801,11 +866,19 @@ void Board::FindAllMovesForParticipant( int color, SourceMap& sourceMap, int tur
 				wxASSERT( moveApplied );
 				
 				SourceMap* newSourceMap = new SourceMap();
-				FindAllMovesForParticipant( color, *newSourceMap, turnCount - 1 );
+				FindAllMovesForParticipant( color, *newSourceMap, turnCount - 1, false );
 				destinationMapIter->second = newSourceMap;
 
 				bool undoMoveApplied = ApplyMoveInternally( undoMove );
 				wxASSERT( undoMoveApplied );
+
+				if( sendEvents )
+				{
+					wxString textColor;
+					ParticipantText( color, textColor );
+					double percentageComplete = double( ++count ) / double( maxCount ) * 100.0;
+					SendEvent( UPDATE_BOARD_THINKING, "Color " + textColor + wxString::Format( " thinking: Move search: %1.2f%%", percentageComplete ) );
+				}
 			}
 		}
 	}
@@ -1477,6 +1550,40 @@ void Board::Piece::ResetAnimation( const MoveSequence& moveSequence )
 {
 	pivotAngle = 0.0;
 	this->moveSequence = moveSequence;
+}
+
+//=================================================================================
+const wxEventTypeTag< Board::Event > Board::BEGIN_BOARD_THINKING( wxNewEventType() );
+const wxEventTypeTag< Board::Event > Board::UPDATE_BOARD_THINKING( wxNewEventType() );
+const wxEventTypeTag< Board::Event > Board::END_BOARD_THINKING( wxNewEventType() );
+
+//=====================================================================================
+Board::Event::Event( int winid /*= 0*/, wxEventType commandType /*= wxEVT_NULL*/ ) : wxEvent( winid, commandType )
+{
+}
+
+//=====================================================================================
+/*virtual*/ Board::Event::~Event( void )
+{
+}
+
+//=====================================================================================
+/*virtual*/ wxEvent* Board::Event::Clone( void ) const
+{
+	// We should never need to have our event queued.
+	return 0;
+}
+
+//=====================================================================================
+void Board::Event::SetMessage( const wxString message )
+{
+	this->message = message;
+}
+
+//=====================================================================================
+wxString Board::Event::GetMessage( void ) const
+{
+	return message;
 }
 
 // ChiCheBoard.cpp

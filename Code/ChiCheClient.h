@@ -3,13 +3,16 @@
 namespace ChiChe
 {
 	//=====================================================================================
-	class Client
+	class Client : public wxEvtHandler
 	{
 	public:
 
 		enum PacketType
 		{
 			GAME_MOVE,
+			BEGIN_COMPUTER_THINKING,
+			UPDATE_COMPUTER_THINKING,
+			END_COMPUTER_THINKING,
 		};
 
 		enum Type
@@ -32,6 +35,9 @@ namespace ChiChe
 	private:
 
 		void TellUserWhosTurnItIs( void );
+
+		void OnBoardThinking( Board::Event& event );
+		void UpdateThinkingStatus( const Socket::Packet& packet );
 
 		Socket* socket;
 		Board* board;

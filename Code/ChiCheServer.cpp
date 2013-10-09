@@ -149,6 +149,28 @@ bool Server::ServiceClient( Participant* participant )
 				BroadcastPacket( outPacket );
 				break;
 			}
+			case Client::BEGIN_COMPUTER_THINKING:
+			case Client::UPDATE_COMPUTER_THINKING:
+			case Client::END_COMPUTER_THINKING:
+			{
+				wxInt32 type;
+				if( inPacket.GetType() == Client::BEGIN_COMPUTER_THINKING )
+					type = BEGIN_COMPUTER_THINKING;
+				else if( inPacket.GetType() == Client::UPDATE_COMPUTER_THINKING )
+					type = UPDATE_COMPUTER_THINKING;
+				else if( inPacket.GetType() == Client::END_COMPUTER_THINKING )
+					type = END_COMPUTER_THINKING;
+
+				// Broad-cast the messate to all but the sender, because
+				// the sender is too busy to receive the message.
+				Socket::Packet outPacket;
+				outPacket.SetType( type );
+				outPacket.SetData( inPacket.GetData() );
+				outPacket.SetSize( inPacket.GetSize() );
+				outPacket.OwnsMemory( false );
+				BroadcastPacket( outPacket, participant );
+				break;
+			}
 		}
 	}
 
@@ -156,12 +178,13 @@ bool Server::ServiceClient( Participant* participant )
 }
 
 //=====================================================================================
-void Server::BroadcastPacket( Socket::Packet& outPacket )
+void Server::BroadcastPacket( Socket::Packet& outPacket, Participant* excludedParticipant /*= 0*/ )
 {
 	for( ParticipantList::iterator iter = participantList.begin(); iter != participantList.end(); iter++ )
 	{
 		Participant* participant = *iter;
-		participant->socket->WritePacket( outPacket );
+		if( participant != excludedParticipant )
+			participant->socket->WritePacket( outPacket );
 	}
 }
 

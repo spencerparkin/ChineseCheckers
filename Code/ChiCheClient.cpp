@@ -112,6 +112,10 @@ bool Client::Run( void )
 					data = wxINT32_SWAP_ALWAYS( data );
 				int participants = data;
 				board = new Board( participants, true );
+				board->SetEventHandler( this );
+				Bind( Board::BEGIN_BOARD_THINKING, &Client::OnBoardThinking, this );
+				Bind( Board::UPDATE_BOARD_THINKING, &Client::OnBoardThinking, this );
+				Bind( Board::END_BOARD_THINKING, &Client::OnBoardThinking, this );
 				break;
 			}
 			case Server::DROPPED_CLIENT:
@@ -123,6 +127,13 @@ bool Client::Run( void )
 				Board::ParticipantText( color, textColor );
 				wxString message = wxT( "The player for color " ) + textColor + wxT( " has been dropped by the server, probably due to connection failure.  The game will halt at this player's turn until another client joins the game." );
 				wxMessageBox( message, wxT( "Dropped Client" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+				break;
+			}
+			case Server::BEGIN_COMPUTER_THINKING:
+			case Server::UPDATE_COMPUTER_THINKING:
+			case Server::END_COMPUTER_THINKING:
+			{
+				UpdateThinkingStatus( inPacket );
 				break;
 			}
 		}
@@ -181,6 +192,66 @@ bool Client::Run( void )
 	}
 
 	return true;
+}
+
+//=====================================================================================
+void Client::OnBoardThinking( Board::Event& event )
+{
+	Socket::Packet outPacket;
+
+	if( event.GetEventType() == Board::BEGIN_BOARD_THINKING )
+		outPacket.SetType( BEGIN_COMPUTER_THINKING );
+	else if( event.GetEventType() == Board::UPDATE_BOARD_THINKING )
+		outPacket.SetType( UPDATE_COMPUTER_THINKING );
+	else if( event.GetEventType() == Board::END_BOARD_THINKING )
+		outPacket.SetType( END_COMPUTER_THINKING );
+
+	wxString message = event.GetMessage();
+	size_t size = message.Length() + 1;
+	char* buffer = new char[ size ];
+	strcpy_s( buffer, size, ( const char* )message.c_str() );
+	outPacket.SetData( ( wxInt8* )buffer );
+	outPacket.SetSize( size );
+	outPacket.OwnsMemory( true );
+
+	socket->WritePacket( outPacket );
+	socket->Advance();
+
+	UpdateThinkingStatus( outPacket );
+}
+
+//=====================================================================================
+void Client::UpdateThinkingStatus( const Socket::Packet& packet )
+{
+	Frame* frame = wxGetApp().GetFrame();
+	wxStatusBar* statusBar = frame->GetStatusBar();
+	if( !statusBar )
+		return;
+
+	wxString message = wxString( ( const char* )packet.GetData() );
+	switch( packet.GetType() )
+	{
+		case Client::BEGIN_COMPUTER_THINKING:
+		case Server::BEGIN_COMPUTER_THINKING:
+		{
+			statusBar->PushStatusText( message );
+			break;
+		}
+		case Client::UPDATE_COMPUTER_THINKING:
+		case Server::UPDATE_COMPUTER_THINKING:
+		{
+			statusBar->SetStatusText( message );
+			break;
+		}
+		case Client::END_COMPUTER_THINKING:
+		case Server::END_COMPUTER_THINKING:
+		{
+			statusBar->PopStatusText();
+			break;
+		}
+	}
+
+	statusBar->Refresh();
 }
 
 //=====================================================================================
