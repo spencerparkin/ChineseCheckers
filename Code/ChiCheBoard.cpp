@@ -642,6 +642,13 @@ bool Board::FindGoodMoveForParticipant(
 
 		SendEvent( END_BOARD_THINKING, wxEmptyString );
 	}
+	else
+	{
+		// TODO: In this case we should quickly re-evaluate
+		//       the move we're about to do to see if it can
+		//       be a little bit better, because the state of
+		//       the board has changed since we did our analysis.
+	}
 
 	// If we get here without a move list in play, we have failed.
 	if( moveMemory.moveListInPlay.size() == 0 )
