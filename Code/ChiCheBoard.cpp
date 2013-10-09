@@ -539,20 +539,18 @@ bool Board::FindGoodMoveForParticipant(
 			{
 				// For simplicity, rule out moves that take us out of the diamond
 				// formed by the home zone, neutral zone and target zone.
-				MoveList::const_iterator iter = moveList.begin();
-				Move move = *iter;
-				Location* destinationLocation = board->locationMap[ move.destinationID ];
-				if( !( destinationLocation->GetZone() == NONE || destinationLocation->GetZone() == decisionBasis->zoneTarget || destinationLocation->GetZone() == decisionBasis->color ) )
+				if( !board->IsConfinedToDiamond( moveList, *decisionBasis ) )
 					return true;
 
-				// TODO: We should also rule out move lists that have any degenerate move sequences.
-				//       For example, don't move a piece one way, then move it back.  That's dumb.
-				//for( iter = moveList.begin(); 
+				// Rule out move lists that have any degenerate move sequences.
+				// For example, don't move a piece one way, then move it back.  That's dumb.
+				if( board->HasDegenerateMoves( moveList ) )
+					return true;
 				
 				MoveListAnalysis moveListAnalysis;
 				moveListAnalysis.moveList = moveList;
 				moveListAnalysis.netMoveDistance = board->CalculateNetMoveDistance( moveList, *decisionBasis );
-				moveListAnalysis.netDistanceToTargets = board->CalculateNetDistanceToTargets( moveList, *decisionBasis );
+				moveListAnalysis.netDistanceToTargets = 0.0; //board->CalculateNetDistanceToTargets( moveList, *decisionBasis );
 				moveListAnalysisList->push_back( moveListAnalysis );
 				return true;
 			}
@@ -574,7 +572,11 @@ bool Board::FindGoodMoveForParticipant(
 
 		//
 		// Step 3) Now go choose from among the analyized set of moves the one
-		//         that we believe is the best.
+		//         that we believe is the best.  The hard part about this is that
+		//         the move list we think is the best, (e.g. moves pieces along the
+		//         board the farthest), may not ultimately lead to a win.  It is
+		//         possible to get stuck in a cycle where the remaining peice is
+		//         never moved by the computer at all.
 		//
 
 		MoveListAnalysis bestMoveListAnalysis;
@@ -587,8 +589,8 @@ bool Board::FindGoodMoveForParticipant(
 				if( bestMoveListAnalysis.netMoveDistance > moveListAnalysis.netMoveDistance )
 					continue;
 
-				if( bestMoveListAnalysis.netDistanceToTargets < moveListAnalysis.netDistanceToTargets )
-					continue;
+				//if( bestMoveListAnalysis.netDistanceToTargets < moveListAnalysis.netDistanceToTargets )
+				//	continue;
 			}
 
 			bestMoveListAnalysis = moveListAnalysis;
@@ -607,6 +609,44 @@ bool Board::FindGoodMoveForParticipant(
 	sourceID = move.sourceID;
 	destinationID = move.destinationID;
 	return true;
+}
+
+//=====================================================================================
+bool Board::IsConfinedToDiamond( const MoveList& moveList, const DecisionBasis& decisionBasis )
+{
+	for( MoveList::const_iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
+	{
+		Move move = *iter;
+		Location* destinationLocation = locationMap[ move.destinationID ];
+		int zone = destinationLocation->GetZone();
+		if( !( zone == NONE || zone == decisionBasis.zoneTarget || zone == decisionBasis.color ) )
+			return false;
+	}
+	return true;
+}
+
+//=====================================================================================
+// There are conceivably various levels of suffistication that a routine
+// like this could have, but to begin, we're just going to keep it simple,
+// and just look for two moves that are inverses of one another.  Note that it
+// is possible, although I can't think of a case, that a legitimate move list
+// may actually have two moves in it that are inverses of one another.  For all
+// move lists of size two, however, that's much less likely the case.
+bool Board::HasDegenerateMoves( const MoveList& moveList )
+{
+	for( MoveList::const_iterator outerIter = moveList.begin(); outerIter != moveList.end(); outerIter++ )
+	{
+		MoveList::const_iterator innerIter = outerIter;
+		for( innerIter++; innerIter != moveList.end(); innerIter++ )
+		{
+			Move outerMove = *outerIter;
+			Move innerMove = *innerIter;
+			if( outerMove.sourceID == innerMove.destinationID && outerMove.destinationID == innerMove.sourceID )
+				return true;
+		}
+	}
+
+	return false;
 }
 
 //=====================================================================================

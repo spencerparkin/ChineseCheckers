@@ -235,6 +235,9 @@ namespace ChiChe
 			Location* targetLocation;
 		};
 
+		bool IsConfinedToDiamond( const MoveList& moveList, const DecisionBasis& decisionBasis );
+		bool HasDegenerateMoves( const MoveList& moveList );
+
 		bool GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBasis );
 
 		class MoveListVisitor
