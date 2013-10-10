@@ -515,6 +515,8 @@ void Board::SendEvent( wxEventType eventType, const wxString message )
 // TODO: The AI here is getting better, but the end-game needs a lot of work.
 //       Specifically, when we detect that we're nearing our end-game, we need
 //       to switch over to a different hueristic that involves the target location.
+// TODO: The AI isn't good at not leaving certain peices behind.  It may be a good
+//       idea to base our choice also on keeping all the pieces closer together.
 bool Board::FindGoodMoveForParticipant(
 						int color, int& sourceID, int& destinationID,
 						int turnCount, MoveMemory& moveMemory )
@@ -638,6 +640,7 @@ bool Board::FindGoodMoveForParticipant(
 			SendEvent( UPDATE_BOARD_THINKING, "Player " + textColor + wxString::Format( " thinking: Move choice: %1.2f%%", percentageComplete ) );
 		}
 
+		// Should we have picked randomly from the set of move lists that tie for first place?
 		moveMemory.moveListInPlay = bestMoveListAnalysis.moveList;
 
 		SendEvent( END_BOARD_THINKING, wxEmptyString );
