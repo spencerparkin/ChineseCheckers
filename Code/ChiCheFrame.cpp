@@ -267,6 +267,10 @@ void Frame::OnTimer( wxTimerEvent& event )
 	if( client )
 	{
 		// BUG: We're getting in here with a stale client pointer.  How?!  It seems to happen at end of game.
+		//      Okay, here's the repro: Let a player win, the dialog saying who won comes up.  Then kill the
+		//      game server.  This causes yet another dialog to come up, (which is odd, because from my
+		//      perspective, this entire application is single-threaded).  Now go ahead and dismiss the dialogs
+		//      and you'll get the crash.
 		if( !client->Run() )
 		{
 			KillClient();

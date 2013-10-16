@@ -651,6 +651,9 @@ bool Board::FindGoodMoveForParticipant(
 		//       the move we're about to do to see if it can
 		//       be a little bit better, because the state of
 		//       the board has changed since we did our analysis.
+		//       On the other hand, may be we shouldn't, because
+		//       doing so may invalidate the next move we were
+		//       about to do.
 	}
 
 	// If we get here without a move list in play, we have failed.
@@ -690,10 +693,10 @@ bool Board::HasDegenerateMoves( const MoveList& moveList )
 {
 	for( MoveList::const_iterator outerIter = moveList.begin(); outerIter != moveList.end(); outerIter++ )
 	{
+		Move outerMove = *outerIter;
 		MoveList::const_iterator innerIter = outerIter;
 		for( innerIter++; innerIter != moveList.end(); innerIter++ )
 		{
-			Move outerMove = *outerIter;
 			Move innerMove = *innerIter;
 			if( outerMove.sourceID == innerMove.destinationID && outerMove.destinationID == innerMove.sourceID )
 				return true;
