@@ -259,6 +259,15 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 //=====================================================================================
 void Frame::OnTimer( wxTimerEvent& event )
 {
+	// This routine was never meant to be re-entrant.
+	// Re-entrancy could cause a crash due to client or server death.
+	// If a dialog is put up in this routine, wxWidgets still calls the timer,
+	// which can cause re-entrancy.
+	static bool inOnTimer = false;
+	if( inOnTimer )
+		return;
+	inOnTimer = true;
+
 	Server* server = wxGetApp().GetServer();
 	if( server && !server->Run() )
 		KillServer();
@@ -266,11 +275,6 @@ void Frame::OnTimer( wxTimerEvent& event )
 	Client* client = wxGetApp().GetClient();
 	if( client )
 	{
-		// BUG: We're getting in here with a stale client pointer.  How?!  It seems to happen at end of game.
-		//      Okay, here's the repro: Let a player win, the dialog saying who won comes up.  Then kill the
-		//      game server.  This causes yet another dialog to come up, (which is odd, because from my
-		//      perspective, this entire application is single-threaded).  Now go ahead and dismiss the dialogs
-		//      and you'll get the crash.
 		if( !client->Run() )
 		{
 			KillClient();
@@ -283,6 +287,8 @@ void Frame::OnTimer( wxTimerEvent& event )
 				canvas->Refresh();
 		}
 	}
+
+	inOnTimer = false;
 }
 
 //=====================================================================================
