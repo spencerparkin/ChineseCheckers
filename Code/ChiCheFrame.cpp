@@ -31,7 +31,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	SetMenuBar( menuBar );
 
 	statusBar = new wxStatusBar( this );
-	statusBar->PushStatusText( wxT( "Welcome!" ) );
+	statusBar->PushStatusText( wxT( "Welcome!  Remember to use the right mouse button to select marbles and board locations." ) );
 	SetStatusBar( statusBar );
 
 	Bind( wxEVT_MENU, &Frame::OnJoinGame, this, ID_JoinGame );

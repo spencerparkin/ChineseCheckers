@@ -20,3 +20,8 @@
 
 # Built crap
 Build/
+
+# Misc
+.sconf_temp/
+.sconsign.dblite
+config.log

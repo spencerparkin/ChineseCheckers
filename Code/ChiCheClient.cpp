@@ -209,7 +209,8 @@ void Client::OnBoardThinking( Board::Event& event )
 	wxString message = event.GetMessage();
 	size_t size = message.Length() + 1;
 	char* buffer = new char[ size ];
-	strcpy_s( buffer, size, ( const char* )message.c_str() );
+	//strcpy_s( buffer, size, ( const char* )message.c_str() );
+	strcpy( buffer, ( const char* )message.c_str() );
 	outPacket.SetData( ( wxInt8* )buffer );
 	outPacket.SetSize( size );
 	outPacket.OwnsMemory( true );
