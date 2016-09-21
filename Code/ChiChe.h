@@ -19,10 +19,15 @@
 #include <wx/tokenzr.h>
 #include <wx/time.h>
 #include <wx/event.h>
+#include <wx/dir.h>
+#include <wx/filename.h>
 
 // OpenGL:
 #include <GL/gl.h>
 #include <GL/glu.h>
+
+// SDL:
+#include <SDL2/SDL.h>
 
 // STL:
 #include <list>
@@ -45,6 +50,7 @@ namespace ChiChe
 	class Server;
 	class Canvas;
 	class Sphere;
+	class Sound;
 }
 
 // ChiChe:
@@ -56,5 +62,6 @@ namespace ChiChe
 #include "ChiCheServer.h"
 #include "ChiCheCanvas.h"
 #include "ChiCheSphere.h"
+#include "ChiCheSound.h"
 
 // ChiChe.h

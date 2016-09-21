@@ -21,11 +21,14 @@ namespace ChiChe
 
 		Frame* GetFrame( void );
 
+		Sound* GetSound( void );
+	
 	private:
 
 		Frame* frame;
 		Client* client;
 		Server* server;
+		Sound* sound;
 	};
 }
 
