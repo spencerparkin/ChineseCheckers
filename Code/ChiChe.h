@@ -27,7 +27,11 @@
 #include <GL/glu.h>
 
 // SDL:
-#include <SDL2/SDL.h>
+#ifdef WIN32
+#	include <SDL.h>
+#else
+#	include <SDL2/SDL.h>
+#endif //WIN32
 
 // STL:
 #include <list>

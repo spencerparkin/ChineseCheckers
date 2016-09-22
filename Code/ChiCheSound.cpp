@@ -8,6 +8,7 @@ using namespace ChiChe;
 Sound::Sound( void )
 {
 	setup = false;
+	enabled = false;
 	audioDeviceID = 0;
 }
 
@@ -39,15 +40,23 @@ bool Sound::Setup( void )
 		found = dir.GetNext( &waveFile );
 	}
 	
+	int numAudioDevices = SDL_GetNumAudioDevices(0);
+	for( int i = 0; i < numAudioDevices; i++ )
+	{
+		const char* audioDeviceName = SDL_GetAudioDeviceName( i, 0 );
+		audioDeviceName = nullptr;
+	}
+
 	SDL_AudioSpec desiredAudioSpec;
 	SDL_memset( &desiredAudioSpec, 0, sizeof( SDL_AudioSpec ) );
 	desiredAudioSpec.freq = 48000;
 	desiredAudioSpec.format = AUDIO_F32;
 	desiredAudioSpec.channels = 1;
 	desiredAudioSpec.samples = 4096;
-	desiredAudioSpec.callback = NULL;
+	desiredAudioSpec.callback = AudioCallback;
+	desiredAudioSpec.userdata = this;
 	
-	audioDeviceID = SDL_OpenAudioDevice( NULL, 0, &desiredAudioSpec, &audioSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE );
+	audioDeviceID = SDL_OpenAudioDevice( NULL, 0, &desiredAudioSpec, &audioSpec, 0 );
 	if( audioDeviceID == 0 )
 	{
 		wxString error = SDL_GetError();
@@ -65,6 +74,8 @@ bool Sound::Shutdown( void )
 	if( !setup )
 		return false;
 	
+	Enable( false );
+
 	ClearWaves();
 	
 	if( audioDeviceID != 0 )
@@ -77,6 +88,67 @@ bool Sound::Shutdown( void )
 	
 	setup = false;
 	return true;
+}
+
+//=====================================================================================
+bool Sound::Enable( bool enable )
+{
+	if( !setup )
+		return false;
+
+	if( this->enabled != enable )
+	{
+		this->enabled = enable;
+
+		SDL_PauseAudioDevice( audioDeviceID, ( enabled ? 0 : 1 ) );
+	}
+
+	return true;
+}
+
+//=====================================================================================
+/*static*/ void Sound::AudioCallback( void* userdata, Uint8* stream, int length )
+{
+	Sound* sound = ( Sound* )userdata;
+	sound->PullForAudio( stream, length );
+}
+
+//=====================================================================================
+void Sound::PullForAudio( Uint8* stream, int length )
+{
+	if( effectQueue.size() == 0 )
+	{
+		SDL_memset( stream, 0, length );
+	}
+	else
+	{
+		// None of the effects overlap.  I suppose we could
+		// get them to overlap if we mixed the audio.  If we
+		// wanted background music, we would need to mix the FX
+		// with the music.
+		while( effectQueue.size() > 0 )
+		{
+			EffectList::iterator iter = effectQueue.begin();
+			Effect& effect = *iter;
+
+			Uint32 effectSize = effect.wave->waveLength - effect.waveOffset;
+			if( effectSize <= ( unsigned )length )
+			{
+				SDL_memcpy( stream, effect.wave->waveBuffer + effect.waveOffset, effectSize );
+				stream += effectSize;
+				length -= effectSize;
+				effectQueue.erase( iter );
+			}
+			else
+			{
+				SDL_memcpy( stream, effect.wave->waveBuffer + effect.waveOffset, length );
+				effect.waveOffset += length;
+				return;
+			}
+		}
+
+		SDL_memset( stream, 0, length );
+	}
 }
 
 //=====================================================================================
@@ -110,11 +182,21 @@ bool Sound::ClearWaves( void )
 //=====================================================================================
 bool Sound::PlayWave( const wxString& waveName )
 {
+	if( !setup || !enabled )
+		return false;
+
 	Wave* wave = FindWave( waveName );
 	if( !wave )
 		return false;
 	
-	//...go play the wave here...
+	Effect effect;
+	effect.wave = wave;
+	effect.waveOffset = 0;
+
+	SDL_LockAudioDevice( audioDeviceID );
+	effectQueue.push_back( effect );
+	SDL_UnlockAudioDevice( audioDeviceID );
+
 	return true;
 }
 
@@ -159,6 +241,7 @@ bool Sound::Wave::Load( const wxString& waveFile )
 		return false;
 	}
 	
+	waveName = fileName.GetName();
 	return true;
 }
 

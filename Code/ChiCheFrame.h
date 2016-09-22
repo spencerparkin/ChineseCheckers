@@ -20,6 +20,7 @@ namespace ChiChe
 			ID_JoinGame,
 			ID_LeaveGame,
 			ID_KillGame,
+			ID_ToggleSound,
 			ID_Exit,
 			ID_About,
 			ID_Timer,
@@ -29,6 +30,7 @@ namespace ChiChe
 		void OnJoinGame( wxCommandEvent& event );
 		void OnLeaveGame( wxCommandEvent& event );
 		void OnKillGame( wxCommandEvent& event );
+		void OnToggleSound( wxCommandEvent& event );
 		void OnExit( wxCommandEvent& event );
 		void OnAbout( wxCommandEvent& event );
 		void OnUpdateMenuItemUI( wxUpdateUIEvent& event );

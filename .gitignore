@@ -17,6 +17,8 @@
 *.suo
 *.user
 *.tss
+*.opensdf
+*.sdf
 
 # Built crap
 Build/

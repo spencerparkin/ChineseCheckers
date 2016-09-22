@@ -165,6 +165,8 @@ void Canvas::OnMouseLeftDown( wxMouseEvent& event )
 	SetFocus();
 
 	mousePos = event.GetPosition();
+
+	wxGetApp().GetSound()->PlayWave( "Doink1" );
 }
 
 //=====================================================================================

@@ -17,8 +17,16 @@ namespace ChiChe
 		bool LoadWave( const wxString& waveFile );
 		bool PlayWave( const wxString& waveName );
 	
+		bool Enable( bool enable );
+		bool IsEnabled( void ) { return enabled; }
+		bool IsSetup( void ) { return setup; }
+
 	private:
+
+		static void AudioCallback( void* userdata, Uint8* stream, int length );
 	
+		void PullForAudio( Uint8* stream, int length );
+
 		class Wave
 		{
 		public:
@@ -38,10 +46,20 @@ namespace ChiChe
 		
 		typedef std::list< Wave* > WaveList;
 		WaveList waveList;
+
+		struct Effect
+		{
+			Wave* wave;
+			Uint32 waveOffset;
+		};
+
+		typedef std::list< Effect > EffectList;
+		EffectList effectQueue;
 		
 		SDL_AudioSpec audioSpec;
 		SDL_AudioDeviceID audioDeviceID;
 		bool setup;
+		bool enabled;
 	};
 }
 
