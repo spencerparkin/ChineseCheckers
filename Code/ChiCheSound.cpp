@@ -49,8 +49,8 @@ bool Sound::Setup( void )
 
 	SDL_AudioSpec desiredAudioSpec;
 	SDL_memset( &desiredAudioSpec, 0, sizeof( SDL_AudioSpec ) );
-	desiredAudioSpec.freq = 48000;
-	desiredAudioSpec.format = AUDIO_F32;
+	desiredAudioSpec.freq = 2 * 48000;
+	desiredAudioSpec.format = AUDIO_S16;
 	desiredAudioSpec.channels = 1;
 	desiredAudioSpec.samples = 4096;
 	desiredAudioSpec.callback = AudioCallback;
@@ -130,6 +130,12 @@ void Sound::PullForAudio( Uint8* stream, int length )
 		{
 			EffectList::iterator iter = effectQueue.begin();
 			Effect& effect = *iter;
+
+			if( effect.wave->waveSpec.format != audioSpec.format )
+			{
+				effectQueue.erase( iter );
+				continue;
+			}
 
 			Uint32 effectSize = effect.wave->waveLength - effect.waveOffset;
 			if( effectSize <= ( unsigned )length )
