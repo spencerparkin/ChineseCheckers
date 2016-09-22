@@ -11,6 +11,7 @@ App::App( void )
 	client = 0;
 	server = 0;
 	sound = nullptr;
+	soundEffect = "Doink";
 }
 
 //=====================================================================================
@@ -24,6 +25,8 @@ App::~App( void )
 //=====================================================================================
 /*virtual*/ bool App::OnInit( void )
 {
+	srand( ( unsigned )time( nullptr ) );
+
 	if( !wxApp::OnInit() )
 		return false;
 	

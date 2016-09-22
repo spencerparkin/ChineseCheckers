@@ -23,6 +23,8 @@ namespace ChiChe
 
 		Sound* GetSound( void );
 	
+		wxString soundEffect;
+
 	private:
 
 		Frame* frame;

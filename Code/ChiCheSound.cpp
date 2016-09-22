@@ -34,9 +34,7 @@ bool Sound::Setup( void )
 	while( found )
 	{
 		waveFile = wxGetCwd() + "/Sounds/" + waveFile;
-		
 		( void )LoadWave( waveFile );
-		
 		found = dir.GetNext( &waveFile );
 	}
 	
@@ -215,6 +213,8 @@ Sound::Wave* Sound::FindWave( const wxString& waveName )
 		Wave* wave = *iter;
 		if( wave->waveName == waveName )
 			return wave;
+
+		iter++;
 	}
 	
 	return nullptr;

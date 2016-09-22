@@ -1546,6 +1546,10 @@ void Board::Piece::Animate( double frameRate )
 		{
 			pivotAngle = 0.0;
 			moveSequence.pop_front();
+
+			int i = int( 100.f * float( rand() ) / float( RAND_MAX ) ) % 3;
+			wxString soundEffect = wxGetApp().soundEffect + wxString::Format( "%d", i );
+			wxGetApp().GetSound()->PlayWave( soundEffect );
 		}
 	}
 }
