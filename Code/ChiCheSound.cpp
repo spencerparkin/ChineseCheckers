@@ -25,19 +25,6 @@ bool Sound::Setup( void )
 	if( 0 != SDL_Init( SDL_INIT_AUDIO ) )
 		return false;
 	
-	wxDir dir( wxGetCwd() + "/Sounds" );
-	if( !dir.IsOpened() )
-		return false;
-	
-	wxString waveFile;
-	bool found = dir.GetFirst( &waveFile );
-	while( found )
-	{
-		waveFile = wxGetCwd() + "/Sounds/" + waveFile;
-		( void )LoadWave( waveFile );
-		found = dir.GetNext( &waveFile );
-	}
-	
 	int numAudioDevices = SDL_GetNumAudioDevices(0);
 	for( int i = 0; i < numAudioDevices; i++ )
 	{
@@ -47,9 +34,9 @@ bool Sound::Setup( void )
 
 	SDL_AudioSpec desiredAudioSpec;
 	SDL_memset( &desiredAudioSpec, 0, sizeof( SDL_AudioSpec ) );
-	desiredAudioSpec.freq = 2 * 48000;
+	desiredAudioSpec.freq = 48000;
 	desiredAudioSpec.format = AUDIO_S16;
-	desiredAudioSpec.channels = 1;
+	desiredAudioSpec.channels = 2;
 	desiredAudioSpec.samples = 4096;
 	desiredAudioSpec.callback = AudioCallback;
 	desiredAudioSpec.userdata = this;
@@ -60,6 +47,19 @@ bool Sound::Setup( void )
 		wxString error = SDL_GetError();
 		wxMessageBox( "SDL_OpenAudioDevice: " + error, "Error", wxCENTRE | wxICON_ERROR );
 		return false;
+	}
+
+	wxDir dir( wxGetCwd() + "/Sounds" );
+	if( !dir.IsOpened() )
+		return false;
+
+	wxString waveFile;
+	bool found = dir.GetFirst( &waveFile );
+	while( found )
+	{
+		waveFile = wxGetCwd() + "/Sounds/" + waveFile;
+		( void )LoadWave( waveFile );
+		found = dir.GetNext( &waveFile );
 	}
 	
 	setup = true;
@@ -97,7 +97,6 @@ bool Sound::Enable( bool enable )
 	if( this->enabled != enable )
 	{
 		this->enabled = enable;
-
 		SDL_PauseAudioDevice( audioDeviceID, ( enabled ? 0 : 1 ) );
 	}
 
@@ -114,10 +113,9 @@ bool Sound::Enable( bool enable )
 //=====================================================================================
 void Sound::PullForAudio( Uint8* stream, int length )
 {
+	// TODO: We need to mix the audio here so that FX happen when they're supposed to.
 	if( effectQueue.size() == 0 )
-	{
 		SDL_memset( stream, 0, length );
-	}
 	else
 	{
 		// None of the effects overlap.  I suppose we could
@@ -128,24 +126,27 @@ void Sound::PullForAudio( Uint8* stream, int length )
 		{
 			EffectList::iterator iter = effectQueue.begin();
 			Effect& effect = *iter;
+			Wave* wave = effect.wave;
 
-			if( effect.wave->waveSpec.format != audioSpec.format )
+			if( wave->waveSpec.format != audioSpec.format ||
+				wave->waveSpec.channels != audioSpec.channels ||
+				wave->waveSpec.freq != audioSpec.freq )
 			{
 				effectQueue.erase( iter );
 				continue;
 			}
 
-			Uint32 effectSize = effect.wave->waveLength - effect.waveOffset;
+			Uint32 effectSize = wave->waveLength - effect.waveOffset;
 			if( effectSize <= ( unsigned )length )
 			{
-				SDL_memcpy( stream, effect.wave->waveBuffer + effect.waveOffset, effectSize );
+				SDL_memcpy( stream, wave->waveBuffer + effect.waveOffset, effectSize );
 				stream += effectSize;
 				length -= effectSize;
 				effectQueue.erase( iter );
 			}
 			else
 			{
-				SDL_memcpy( stream, effect.wave->waveBuffer + effect.waveOffset, length );
+				SDL_memcpy( stream, wave->waveBuffer + effect.waveOffset, length );
 				effect.waveOffset += length;
 				return;
 			}
@@ -240,10 +241,11 @@ bool Sound::Wave::Load( const wxString& waveFile )
 	if( !fileName.FileExists() )
 		return false;
 	
+	SDL_memset( &waveSpec, 0, sizeof( SDL_AudioSpec ) );
 	if( NULL == SDL_LoadWAV( waveFile.c_str(), &waveSpec, &waveBuffer, &waveLength ) )
 	{
 		wxString error = SDL_GetError();
-		wxMessageBox( "SDL_LoadWAVE: " + error, "Error", wxCENTRE | wxICON_ERROR );
+		wxMessageBox( "SDL_LoadWAV: " + error, "Error", wxCENTRE | wxICON_ERROR );
 		return false;
 	}
 	
