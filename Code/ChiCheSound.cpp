@@ -10,6 +10,7 @@ Sound::Sound( void )
 	setup = false;
 	enabled = false;
 	audioDeviceID = 0;
+	maxEffects = 2;
 }
 
 //=====================================================================================
@@ -113,47 +114,52 @@ bool Sound::Enable( bool enable )
 //=====================================================================================
 void Sound::PullForAudio( Uint8* stream, int streamLen )
 {
-	// TODO: We need to mix the audio here so that FX happen when they're supposed to.
-	if( effectQueue.size() == 0 )
-		SDL_memset( stream, 0, streamLen );
-	else
+	Sint16* audioBuffer = ( Sint16* )stream;
+	int audioBufLen = streamLen / sizeof( Sint16 );
+
+	Sint32* mixBuffer = new Sint32[ audioBufLen ];
+	int mixBufLen = audioBufLen;
+
+	SDL_memset( mixBuffer, 0, sizeof( Sint32 ) * mixBufLen );
+
+	EffectList::iterator iter = effectList.begin();
+	while( iter != effectList.end() )
 	{
-		// None of the effects overlap.  I suppose we could
-		// get them to overlap if we mixed the audio.  If we
-		// wanted background music, we would need to mix the FX
-		// with the music.
-		while( effectQueue.size() > 0 )
+		Effect& effect = *iter;
+		Wave* wave = effect.wave;
+		Sint16* sampleBuffer = ( Sint16* )&wave->buffer[ effect.offset ];
+		int sampleBufLen = ( wave->bufLen - effect.offset ) / sizeof( Sint16 );
+
+		int i = 0;
+		while( i < mixBufLen && i < sampleBufLen )
 		{
-			EffectList::iterator iter = effectQueue.begin();
-			Effect& effect = *iter;
-			Wave* wave = effect.wave;
-
-			if( wave->waveSpec.format != audioSpec.format ||
-				wave->waveSpec.channels != audioSpec.channels ||
-				wave->waveSpec.freq != audioSpec.freq )
-			{
-				effectQueue.erase( iter );
-				continue;
-			}
-
-			Uint32 effectSize = wave->bufLen - effect.offset;
-			if( effectSize <= ( unsigned )streamLen )
-			{
-				SDL_memcpy( stream, wave->buffer + effect.offset, effectSize );
-				stream += effectSize;
-				streamLen -= effectSize;
-				effectQueue.erase( iter );
-			}
-			else
-			{
-				SDL_memcpy( stream, wave->buffer + effect.offset, streamLen );
-				effect.offset += streamLen;
-				return;
-			}
+			Sint32 sample = ( Sint32 )sampleBuffer[i];
+			mixBuffer[i] += sample;
+			i++;
 		}
 
-		SDL_memset( stream, 0, streamLen );
+		effect.offset += i * sizeof( Sint16 );
+		if( effect.offset < wave->bufLen )
+			iter++;
+		else
+		{
+			EffectList::iterator eraseIter = iter;
+			iter++;
+			effectList.erase( eraseIter );
+		}
 	}
+
+	for( int i = 0; i < mixBufLen; i++ )
+	{
+		Sint32 sample = mixBuffer[i];
+		if( sample > SHRT_MAX )
+			sample = SHRT_MAX;
+		if( sample < SHRT_MIN )
+			sample = SHRT_MIN;
+		audioBuffer[i] = ( Sint16 )sample;
+	}
+
+	delete[] mixBuffer;
 }
 
 //=====================================================================================
@@ -194,12 +200,21 @@ bool Sound::PlayWave( const wxString& waveName )
 	if( !wave )
 		return false;
 	
+	if( wave->waveSpec.format != audioSpec.format ||
+		wave->waveSpec.channels != audioSpec.channels ||
+		wave->waveSpec.freq != audioSpec.freq )
+	{
+		return false;
+	}
+
 	Effect effect;
 	effect.wave = wave;
 	effect.offset = 0;
 
 	SDL_LockAudioDevice( audioDeviceID );
-	effectQueue.push_back( effect );
+	effectList.push_back( effect );
+	while( ( signed )effectList.size() > maxEffects )
+		effectList.pop_front();
 	SDL_UnlockAudioDevice( audioDeviceID );
 
 	return true;

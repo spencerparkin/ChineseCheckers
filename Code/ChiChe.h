@@ -42,6 +42,7 @@
 
 // Math:
 #include <math.h>
+#include <limits.h>
 
 // Forwards:
 namespace ChiChe

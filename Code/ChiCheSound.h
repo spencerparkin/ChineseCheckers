@@ -21,6 +21,9 @@ namespace ChiChe
 		bool IsEnabled( void ) { return enabled; }
 		bool IsSetup( void ) { return setup; }
 
+		void SetMaxEffects( int maxEffects ) { this->maxEffects = maxEffects; }
+		int GetMaxEffects( void ) { return maxEffects; }
+
 	private:
 
 		static void AudioCallback( void* userdata, Uint8* stream, int streamLen );
@@ -54,7 +57,8 @@ namespace ChiChe
 		};
 
 		typedef std::list< Effect > EffectList;
-		EffectList effectQueue;
+		EffectList effectList;
+		int maxEffects;
 		
 		SDL_AudioSpec audioSpec;
 		SDL_AudioDeviceID audioDeviceID;
