@@ -23,9 +23,9 @@ namespace ChiChe
 
 	private:
 
-		static void AudioCallback( void* userdata, Uint8* stream, int length );
+		static void AudioCallback( void* userdata, Uint8* stream, int streamLen );
 	
-		void PullForAudio( Uint8* stream, int length );
+		void PullForAudio( Uint8* stream, int streamLen );
 
 		class Wave
 		{
@@ -36,10 +36,10 @@ namespace ChiChe
 			bool Load( const wxString& waveFile );
 			bool Unload( void );
 		
-			wxString waveName;
+			wxString name;
 			SDL_AudioSpec waveSpec;
-			Uint32 waveLength;
-			Uint8* waveBuffer;
+			Uint32 bufLen;
+			Uint8* buffer;
 		};
 		
 		Wave* FindWave( const wxString& waveName );
@@ -50,7 +50,7 @@ namespace ChiChe
 		struct Effect
 		{
 			Wave* wave;
-			Uint32 waveOffset;
+			Uint32 offset;
 		};
 
 		typedef std::list< Effect > EffectList;

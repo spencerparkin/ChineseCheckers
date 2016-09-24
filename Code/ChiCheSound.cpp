@@ -104,18 +104,18 @@ bool Sound::Enable( bool enable )
 }
 
 //=====================================================================================
-/*static*/ void Sound::AudioCallback( void* userdata, Uint8* stream, int length )
+/*static*/ void Sound::AudioCallback( void* userdata, Uint8* stream, int streamLen )
 {
 	Sound* sound = ( Sound* )userdata;
-	sound->PullForAudio( stream, length );
+	sound->PullForAudio( stream, streamLen );
 }
 
 //=====================================================================================
-void Sound::PullForAudio( Uint8* stream, int length )
+void Sound::PullForAudio( Uint8* stream, int streamLen )
 {
 	// TODO: We need to mix the audio here so that FX happen when they're supposed to.
 	if( effectQueue.size() == 0 )
-		SDL_memset( stream, 0, length );
+		SDL_memset( stream, 0, streamLen );
 	else
 	{
 		// None of the effects overlap.  I suppose we could
@@ -136,23 +136,23 @@ void Sound::PullForAudio( Uint8* stream, int length )
 				continue;
 			}
 
-			Uint32 effectSize = wave->waveLength - effect.waveOffset;
-			if( effectSize <= ( unsigned )length )
+			Uint32 effectSize = wave->bufLen - effect.offset;
+			if( effectSize <= ( unsigned )streamLen )
 			{
-				SDL_memcpy( stream, wave->waveBuffer + effect.waveOffset, effectSize );
+				SDL_memcpy( stream, wave->buffer + effect.offset, effectSize );
 				stream += effectSize;
-				length -= effectSize;
+				streamLen -= effectSize;
 				effectQueue.erase( iter );
 			}
 			else
 			{
-				SDL_memcpy( stream, wave->waveBuffer + effect.waveOffset, length );
-				effect.waveOffset += length;
+				SDL_memcpy( stream, wave->buffer + effect.offset, streamLen );
+				effect.offset += streamLen;
 				return;
 			}
 		}
 
-		SDL_memset( stream, 0, length );
+		SDL_memset( stream, 0, streamLen );
 	}
 }
 
@@ -196,7 +196,7 @@ bool Sound::PlayWave( const wxString& waveName )
 	
 	Effect effect;
 	effect.wave = wave;
-	effect.waveOffset = 0;
+	effect.offset = 0;
 
 	SDL_LockAudioDevice( audioDeviceID );
 	effectQueue.push_back( effect );
@@ -212,7 +212,7 @@ Sound::Wave* Sound::FindWave( const wxString& waveName )
 	while( iter != waveList.end() )
 	{
 		Wave* wave = *iter;
-		if( wave->waveName == waveName )
+		if( wave->name == waveName )
 			return wave;
 
 		iter++;
@@ -224,8 +224,8 @@ Sound::Wave* Sound::FindWave( const wxString& waveName )
 //=====================================================================================
 Sound::Wave::Wave( void )
 {
-	waveLength = 0;
-	waveBuffer = nullptr;
+	bufLen = 0;
+	buffer = nullptr;
 }
 
 //=====================================================================================
@@ -242,25 +242,25 @@ bool Sound::Wave::Load( const wxString& waveFile )
 		return false;
 	
 	SDL_memset( &waveSpec, 0, sizeof( SDL_AudioSpec ) );
-	if( NULL == SDL_LoadWAV( waveFile.c_str(), &waveSpec, &waveBuffer, &waveLength ) )
+	if( NULL == SDL_LoadWAV( waveFile.c_str(), &waveSpec, &buffer, &bufLen ) )
 	{
 		wxString error = SDL_GetError();
 		wxMessageBox( "SDL_LoadWAV: " + error, "Error", wxCENTRE | wxICON_ERROR );
 		return false;
 	}
 	
-	waveName = fileName.GetName();
+	name = fileName.GetName();
 	return true;
 }
 
 //=====================================================================================
 bool Sound::Wave::Unload( void )
 {
-	if( waveBuffer )
+	if( buffer )
 	{
-		SDL_FreeWAV( waveBuffer );
-		waveBuffer = nullptr;
-		waveLength = 0;
+		SDL_FreeWAV( buffer );
+		buffer = nullptr;
+		bufLen = 0;
 	}
 	
 	return true;
