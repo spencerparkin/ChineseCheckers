@@ -11,6 +11,10 @@ if not obj_env.GetOption( 'clean' ):
   if not conf.CheckLib( 'wx_baseu-3.0' ):
     print( 'wxWidgets may not be installed; couldn\'t find it.' )
     Exit(1)
+
+  if not conf.CheckLib( 'SDL2' ):
+    print( 'SDL2 may not be installed; could\'t find it.' )
+    Exit(1)
   
   obj_env = conf.Finish()
 
@@ -29,7 +33,7 @@ prog_env.Append( LIBS = '-lGLU' )
 prog_env.Append( LIBS = '-lSDL2' )
 prog = prog_env.Program( '$PROGNAME', source = object_list )
 
-dest_dir = '/usr'
+dest_dir = '/usr/local'
 if 'DESTDIR' in os.environ:
   dest_dir = os.environ[ 'DESTDIR' ]
 
@@ -37,5 +41,8 @@ install_env = Environment(
   BIN = dest_dir + '/bin',
   SHARE = dest_dir + '/share' )
 
+sound_list = Glob( 'Sounds/*.wav' )
+
 install_env.Install( '$BIN', prog )
-install_env.Alias( 'install', '$BIN' )
+install_env.Install( '$SHARE/ChiChe/Sounds', sound_list )
+install_env.Alias( 'install', [ '$BIN', '$SHARE/ChiChe/Sounds' ] )
