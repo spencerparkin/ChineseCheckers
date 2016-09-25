@@ -69,8 +69,12 @@ bool Sound::Setup( void )
 	wxDir dir( soundsDir );
 	if( !dir.IsOpened() )
 	{
-		wxMessageBox( "Failed to locate sounds resource directory: " + soundsDir, "Error", wxCENTRE | wxICON_ERROR );
-		return false;
+		soundsDir = "./Sounds";
+		if( !dir.Open( soundsDir ) )
+		{
+			wxMessageBox( "Failed to locate sounds resource directory.", "Error", wxCENTRE | wxICON_ERROR );
+			return false;
+		}
 	}
 
 	wxString waveFile;

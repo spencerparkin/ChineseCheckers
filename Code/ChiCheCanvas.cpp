@@ -165,6 +165,9 @@ void Canvas::OnMouseLeftDown( wxMouseEvent& event )
 	SetFocus();
 
 	mousePos = event.GetPosition();
+	
+	if( event.ShiftDown() && event.AltDown() )
+		wxGetApp().GetSound()->PlayWave( "Fart1" );
 }
 
 //=====================================================================================
