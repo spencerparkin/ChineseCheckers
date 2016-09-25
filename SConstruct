@@ -26,6 +26,7 @@ for source_file in cpp_source_list:
 prog_env = Environment( PROGNAME = 'ChineseCheckers', parse_flags = '!wx-config --libs core base adv net gl' )
 prog_env.Append( LIBS = '-lGL' )
 prog_env.Append( LIBS = '-lGLU' )
+prog_env.Append( LIBS = '-lSDL2' )
 prog = prog_env.Program( '$PROGNAME', source = object_list )
 
 dest_dir = '/usr'

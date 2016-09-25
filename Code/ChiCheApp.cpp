@@ -10,18 +10,31 @@ App::App( void )
 	frame = 0;
 	client = 0;
 	server = 0;
+	sound = nullptr;
+	soundEffect = "Doink";
 }
 
 //=====================================================================================
 App::~App( void )
 {
+	if( sound )
+		sound->Shutdown();
+	delete sound;
 }
 
 //=====================================================================================
 /*virtual*/ bool App::OnInit( void )
 {
+	srand( ( unsigned )time( nullptr ) );
+
 	if( !wxApp::OnInit() )
 		return false;
+	
+	sound = new Sound();
+	if( !sound->Setup() )
+	{
+		//return false;
+	}
 
 	frame = new Frame();
 	frame->Show();
@@ -57,6 +70,12 @@ Server* App::GetServer( void )
 Frame* App::GetFrame( void )
 {
 	return frame;
+}
+
+//=====================================================================================
+Sound* App::GetSound( void )
+{
+	return sound;
 }
 
 //=====================================================================================

@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Code">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Code\c3ga">
+      <UniqueIdentifier>{bb59d1c2-7d4e-4036-accb-63bf939ea1f0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Code\ChiChe.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheApp.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheBoard.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheCanvas.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheClient.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheFrame.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheServer.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheSocket.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheSphere.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\c3ga\c3ga.h">
+      <Filter>Code\c3ga</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheSound.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Code\ChiCheApp.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheBoard.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheCanvas.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheClient.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheFrame.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheServer.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheSocket.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheSphere.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\c3ga\c3ga.cpp">
+      <Filter>Code\c3ga</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\c3ga\c3ga_parse_mv.cpp">
+      <Filter>Code\c3ga</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheSound.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

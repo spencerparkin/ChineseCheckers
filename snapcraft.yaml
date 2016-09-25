@@ -3,13 +3,13 @@ version: "1.0"
 summary: An over-the-network, multi-player implimentation of Chinese Checkers in 3D.
 description: Play a friendly game of Chinese Checkers against the computer or someone
   else on the network (provided you know their IP address), or some combination of the two.
-  The playing board animates and is rendered in 3D using OpenGL.
+  The playing board animates and is rendered in 3D using OpenGL.  Enable sound effects for a mind-blowing experience!
 confinement: strict
 
 apps:
   chiche:
     command: desktop-launch $SNAP/bin/ChineseCheckers
-    plugs: [home, x11, unity7, network, network-bind, network-control, network-manager, network-observe]
+    plugs: [home, x11, unity7, network, network-bind, pulseaudio]
 
 parts:
   chiche:

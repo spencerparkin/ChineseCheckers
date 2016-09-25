@@ -17,9 +17,12 @@
 *.suo
 *.user
 *.tss
+*.opensdf
+*.sdf
 
 # Built crap
 Build/
+ChineseCheckers
 
 # Misc
 .sconf_temp/

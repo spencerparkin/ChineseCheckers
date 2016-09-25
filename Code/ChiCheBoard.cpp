@@ -1506,7 +1506,7 @@ void Board::Piece::Render( Board* board, bool highlight )
 	{
 		GLfloat specularity[] = { 1.f, 1.f, 1.f, 1.f };
 		GLfloat shininess[] = { 50.f };
-		GLfloat ambientDiffuse[] = { renderColor.get_e1(), renderColor.get_e2(), renderColor.get_e3(), 1.f };
+		GLfloat ambientDiffuse[] = { ( GLfloat )renderColor.get_e1(), ( GLfloat )renderColor.get_e2(), ( GLfloat )renderColor.get_e3(), 1.f };
 		GLfloat emissive[] = { 0.f, 0.f, 0.f, 0.f };
 
 		if( highlight )
@@ -1546,6 +1546,10 @@ void Board::Piece::Animate( double frameRate )
 		{
 			pivotAngle = 0.0;
 			moveSequence.pop_front();
+
+			int i = int( 100.f * float( rand() ) / float( RAND_MAX ) ) % 3 + 1;
+			wxString soundEffect = wxGetApp().soundEffect + wxString::Format( "%d", i );
+			wxGetApp().GetSound()->PlayWave( soundEffect );
 		}
 	}
 }
