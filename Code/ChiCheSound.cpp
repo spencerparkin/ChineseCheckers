@@ -77,8 +77,13 @@ bool Sound::Setup( void )
 	bool found = dir.GetFirst( &waveFile );
 	while( found )
 	{
-		waveFile = wxGetCwd() + "/Sounds/" + waveFile;
-		( void )LoadWave( waveFile );
+		waveFile = soundsDir + "/" + waveFile;
+		if( !LoadWave( waveFile ) )
+		{
+			wxMessageBox( "Failed to load wave file: " + waveFile, "Error", wxCENTRE | wxICON_ERROR );
+			return false;
+		}
+		
 		found = dir.GetNext( &waveFile );
 	}
 	
