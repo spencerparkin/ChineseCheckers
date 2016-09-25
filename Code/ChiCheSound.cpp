@@ -61,9 +61,17 @@ bool Sound::Setup( void )
 		return false;
 	}
 
-	wxDir dir( wxGetCwd() + "/Sounds" );
+	wxString soundsDir = "../Share/ChiChe/Sounds";
+	wxString snapDir;
+	if( wxGetEnv( "SNAP", &snapDir ) )
+		soundsDir = snapDir + "/share/ChiChe/Sounds";
+	
+	wxDir dir( soundsDir );
 	if( !dir.IsOpened() )
+	{
+		wxMessageBox( "Failed to locate sounds resource directory: " + soundsDir, "Error", wxCENTRE | wxICON_ERROR );
 		return false;
+	}
 
 	wxString waveFile;
 	bool found = dir.GetFirst( &waveFile );
