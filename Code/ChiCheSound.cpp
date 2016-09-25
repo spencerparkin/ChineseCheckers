@@ -24,7 +24,18 @@ Sound::Sound( void )
 bool Sound::Setup( void )
 {
 	if( 0 != SDL_Init( SDL_INIT_AUDIO ) )
+	{
+		wxString error = SDL_GetError();
+		wxMessageBox( "SDL_Init: " + error, "Error", wxCENTRE | wxICON_ERROR );
 		return false;
+	}
+	
+	int numAudioDrivers = SDL_GetNumAudioDrivers();
+	for( int i = 0; i < numAudioDrivers; i++ )
+	{
+		const char* audioDriverName = SDL_GetAudioDriver(i);
+		audioDriverName = nullptr;
+	}
 	
 	int numAudioDevices = SDL_GetNumAudioDevices(0);
 	for( int i = 0; i < numAudioDevices; i++ )

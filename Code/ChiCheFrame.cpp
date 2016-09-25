@@ -64,6 +64,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_LeaveGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_KillGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_ToggleSound );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_Effect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_DoinkEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_FartEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HiyawEffect );
@@ -274,7 +275,7 @@ void Frame::OnAbout( wxCommandEvent& event )
 	
 	aboutDialogInfo.SetName( wxT( "Chinese Checkers" ) );
 	aboutDialogInfo.SetVersion( wxT( "1.0" ) );
-	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license." ) );
+	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license.  The AI in this program is terrible; I'm working to improve it." ) );
 	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013 Spencer T. Parkin <spencer.parkin@disney.com>" ) );
 
 	wxAboutBox( aboutDialogInfo );
@@ -315,6 +316,11 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 				event.Check( wxGetApp().GetSound()->IsEnabled() );
 			}
 
+			break;
+		}
+		case ID_Effect:
+		{
+			event.Enable( wxGetApp().GetSound()->IsSetup() );
 			break;
 		}
 		case ID_DoinkEffect:
