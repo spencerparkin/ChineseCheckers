@@ -1,9 +1,9 @@
 name: chiche
-version: "1.0"
+version: 1.0
 summary: An over-the-network, multi-player implimentation of Chinese Checkers in 3D.
 description: Play a friendly game of Chinese Checkers against the computer or someone
   else on the network (provided you know their IP address), or some combination of the two.
-  The playing board animates and is rendered in 3D using OpenGL.  Enable sound effects for a mind-blowing experience!
+  The playing board animates and is rendered in 3D using OpenGL.
 confinement: strict
 
 apps:
