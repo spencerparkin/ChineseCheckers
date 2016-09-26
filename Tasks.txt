@@ -8,3 +8,9 @@ Tasks
 	
  -- Actually test the program over a real network.  I have only tested the program
     on the loop-back device.
+
+ -- I've noticed the following bug.  Setup two human players playing a game.  Have
+    one of them leave; the one who's turn it is.  The other waits for another player
+    to join.  Have a computer player join.  Now it's the computer's turn, but they
+    won't make their move and you can't do it for them.  The game is in a non-
+    progression state.
