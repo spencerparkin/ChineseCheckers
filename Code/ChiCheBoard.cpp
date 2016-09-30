@@ -525,6 +525,7 @@ bool Board::FindGoodMoveForParticipant(
 	// no longer valid, invalidate the entire move list.
 	if( moveMemory.moveListInPlay.size() > 0 )
 	{
+		// TODO: Should really check the entire plan here, not just the current start of it.
 		Move move = *moveMemory.moveListInPlay.begin();
 		MoveSequence moveSequence;
 		if( !FindMoveSequence( move, moveSequence ) )
@@ -654,6 +655,10 @@ bool Board::FindGoodMoveForParticipant(
 		//       On the other hand, may be we shouldn't, because
 		//       doing so may invalidate the next move we were
 		//       about to do.
+		//
+		//       I have noticed cases where it continued with its
+		//       current plan, but the move it did was dumb, because
+		//       it could have been extended.
 	}
 
 	// If we get here without a move list in play, we have failed.
