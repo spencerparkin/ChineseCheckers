@@ -7,6 +7,8 @@ namespace ChiChe
 	// who's turn it is, and where all the player pieces are located.
 	class Board
 	{
+		friend class Brain;
+
 	public:
 
 		//=====================================================================================
@@ -61,6 +63,8 @@ namespace ChiChe
 		{
 			int sourceID;
 			int destinationID;
+
+			void Inverse( Move& inverseMove ) const;
 		};
 
 		typedef std::list< Move > MoveList;		// This is what one might also call a move sequence.  It is a sequence of moves made over one or more turns.
@@ -69,16 +73,7 @@ namespace ChiChe
 		typedef std::list< Location* > LocationList;
 		typedef std::list< Piece* > PieceList;
 		typedef std::map< int, bool > VisitationMap;
-		typedef std::map< int, void* > DestinationMap;
-		typedef std::map< int, DestinationMap* > SourceMap;
-
-		// This structure is used by the computer player logic, and
-		// the same instance of it is expected to be passed to that
-		// logic each turn it is given a chance to play.
-		struct MoveMemory
-		{
-			MoveList moveListInPlay;
-		};
+		typedef std::map< int, int > TargetCountMap;
 
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
@@ -124,6 +119,9 @@ namespace ChiChe
 		// Return the winning piece color, if any.
 		int DetermineWinner( void );
 
+		// Calculate the occupancy for each participant in their respective zones.
+		void ComputeTargetCountMap( TargetCountMap& targetCountMap );
+
 		// Render the board for display or selection.
 		void Render( GLenum renderMode, int highlightLocationID );
 
@@ -147,12 +145,14 @@ namespace ChiChe
 		// Internalize the entire state of the game that is in the given packet.
 		bool SetGameState( const Socket::Packet& inPacket );
 
-		// Try to determine a good move that could be made by the given participant with the current game state that is based on various amounts of information.
-		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID );
-		bool FindGoodMoveForParticipant( int color, int& sourceID, int& destinationID, int turnCount, MoveMemory& moveMemory );
-
 		// Tell us if any piece is still animating.
 		bool AnyPieceInMotion( void );
+
+		// Return the list of locations of all participants of the given color.
+		void FindParticpantLocations( int color, LocationList& locationList );
+
+		// Return in the given list the set of all possible locations that can be reached by the given location.
+		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList );
 
 		//=====================================================================================
 		// Each of these represents a location on the game board.
@@ -241,43 +241,9 @@ namespace ChiChe
 		void NextTurn( void );
 		void IncrementTurn( void );
 
-		Location* FindTargetLocation( int zoneTarget );
 		bool ApplyMoveInternally( int sourceID, int destinationID );
 		bool ApplyMoveInternally( const Move& move );
 		bool FindMoveSequenceRecursively( Location* currentLocation, Location* destinationLocation, MoveSequence& moveSequence );
-		Location* FindZoneVertex( int zone );
-		Location* FindClosestUnoccupiedLocationInZone( const c3ga::vectorE3GA& position, int zone );
-		void FindAllMovesForParticipant( int color, SourceMap& sourceMap, int turnCount = 1, bool sendEvents = true );
-		DestinationMap* FindAllMovesForLocation( Location* location );
-		void FindAllMovesForLocationRecursively( Location* location, DestinationMap& destinationMap );
-		void DeleteMoves( SourceMap& sourceMap );
-
-		struct DecisionBasis
-		{
-			int color;
-			int zoneTarget;
-			Location* sourceVertexLocation;
-			Location* destinationVertexLocation;
-			c3ga::vectorE3GA generalMoveDirection;
-			Location* targetLocation;
-		};
-
-		bool IsConfinedToDiamond( const MoveList& moveList, const DecisionBasis& decisionBasis );
-		bool HasDegenerateMoves( const MoveList& moveList );
-
-		bool GenerateDecisionBasisForColor( int color, DecisionBasis& decisionBasis );
-
-		class MoveListVisitor
-		{
-		public:
-			virtual bool Visit( const MoveList& moveList ) = 0;
-			virtual wxString FormulateThinkingMessage( double percentageComplete ) = 0;
-		};
-
-		void VisitAllMoveLists( const SourceMap& sourceMap, MoveList moveList, MoveListVisitor* moveListVisitor, bool sendEvent = true );
-
-		double CalculateNetMoveDistance( const MoveList& moveList, const DecisionBasis& decisionBasis );
-		double CalculateNetDistanceToTargets( const MoveList& moveList, const DecisionBasis& decisionBasis );
 
 		void SendEvent( wxEventType eventType, const wxString message );
 

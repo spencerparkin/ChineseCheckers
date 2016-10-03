@@ -13,6 +13,9 @@ Client::Client( Type type )
 	color = Board::NONE;
 	selectedLocationID = -1;
 	movePacketSent = false;
+	brain = nullptr;
+	if( type == COMPUTER )
+		brain = new Brain();
 }
 
 //=====================================================================================
@@ -20,6 +23,7 @@ Client::~Client( void )
 {
 	delete socket;
 	delete board;
+	delete brain;
 }
 
 //=====================================================================================
@@ -140,10 +144,10 @@ bool Client::Run( void )
 	}
 
 	// If we're an computer participant, go run the AI logic.
-	while( type == COMPUTER_LEVEL_1 || type == COMPUTER_LEVEL_2 || type == COMPUTER_LEVEL_3 )
+	while( type == COMPUTER )
 	{
-		// There's nothing for us to do until the board is created.
-		if( !board )
+		// There's nothing for us to do until the board is created, and we have to have a brain.
+		if( !board || !brain )
 			break;
 
 		// Wait until it's our turn.
@@ -166,15 +170,8 @@ bool Client::Run( void )
 			break;
 		
 		// Okay, it's time to make our move.
-		int sourceID, destinationID;
-		bool success = false;
-		if( type == COMPUTER_LEVEL_1 )
-			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID );
-		else if( type == COMPUTER_LEVEL_2 )
-			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 2, moveMemory );
-		else if( type == COMPUTER_LEVEL_3 )
-			success = board->FindGoodMoveForParticipant( color, sourceID, destinationID, 3, moveMemory );
-		if( !success )
+		Board::Move move;
+		if( !brain->FindGoodMoveForParticipant( color, board, move ) )
 		{
 			wxString textColor;
 			Board::ParticipantText( color, textColor );
@@ -185,7 +182,7 @@ bool Client::Run( void )
 		
 		// Submit our move!
 		Socket::Packet outPacket;
-		Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
+		Board::PackMove( outPacket, move.sourceID, move.destinationID, GAME_MOVE );
 		socket->WritePacket( outPacket );
 		movePacketSent = true;
 		break;

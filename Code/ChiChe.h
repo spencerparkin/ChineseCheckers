@@ -1,5 +1,8 @@
 // ChiChe.h
 
+// Yes, I realize that this header is a terrible idea.
+// I'm too lazy to dismantle it at the moment.
+
 // wxWidgets:
 #include <wx/setup.h>
 #include <wx/app.h>
@@ -56,6 +59,7 @@ namespace ChiChe
 	class Canvas;
 	class Sphere;
 	class Sound;
+	class Brain;
 }
 
 // ChiChe:
@@ -68,5 +72,6 @@ namespace ChiChe
 #include "ChiCheCanvas.h"
 #include "ChiCheSphere.h"
 #include "ChiCheSound.h"
+#include "ChiCheBrain.h"
 
 // ChiChe.h

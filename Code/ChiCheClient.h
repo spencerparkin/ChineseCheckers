@@ -18,9 +18,7 @@ namespace ChiChe
 		enum Type
 		{
 			HUMAN,
-			COMPUTER_LEVEL_1,
-			COMPUTER_LEVEL_2,
-			COMPUTER_LEVEL_3,
+			COMPUTER,
 		};
 
 		Client( Type type );
@@ -45,7 +43,7 @@ namespace ChiChe
 		int color;
 		int selectedLocationID;
 		bool movePacketSent;
-		Board::MoveMemory moveMemory;
+		Brain* brain;
 	};
 }
 
