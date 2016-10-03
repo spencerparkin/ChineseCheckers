@@ -13,6 +13,7 @@ class ChiChe::Brain
 public:
 
 	class Cache;
+	struct GeneralMetrics;
 
 	Brain( void );
 	virtual ~Brain( void );
@@ -22,11 +23,21 @@ public:
 	bool FindGoodMoveForParticipant( int color, Board* board, Board::Move& move );
 
 	// Here we examine every outcome of the game up to the given move count as if every turn was our own.
-	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
+	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
+
+	//=====================================================================================
+	struct GeneralMetrics
+	{
+		c3ga::vectorE3GA generalMoveDir;
+	};
 
 	//=====================================================================================
 	class Cache
 	{
+	private:
+
+		struct Metrics;
+
 	public:
 
 		Cache( Board::MoveList* moveList = nullptr );
@@ -38,13 +49,23 @@ public:
 		bool MakeNextMove( Board::Move& move );
 
 		// Return true if the given cache is better than this cache.
-		bool Compare( int color, Board* board, Cache* cache );
+		bool Compare( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cache );
+
+		Metrics* GetMetrics( int color, Board* board, const GeneralMetrics& generalMetrics );
 
 	private:
 
 		bool RecursivelyValidateMoveList( Board* board, Board::MoveList::iterator& iter );
 
-		Board::MoveList moveListInPlay;
+		Board::MoveList moveList;
+
+		struct Metrics
+		{
+			double netProjectedSignedDistance;
+			int targetZoneLandingCount;
+		};
+
+		Metrics* metrics;
 	};
 
 	typedef std::map< int, Cache* > CacheMap;

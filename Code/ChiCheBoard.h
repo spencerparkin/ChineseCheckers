@@ -153,6 +153,7 @@ namespace ChiChe
 
 		// Return in the given list the set of all possible locations that can be reached by the given location.
 		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList );
+		void FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList );
 
 		//=====================================================================================
 		// Each of these represents a location on the game board.

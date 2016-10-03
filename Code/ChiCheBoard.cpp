@@ -428,11 +428,51 @@ int Board::DetermineWinner( void )
 //=====================================================================================
 void Board::FindParticpantLocations( int color, LocationList& locationList )
 {
+	for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
+	{
+		Location* location = iter->second;
+		int occupant = location->GetOccupant();
+		if( occupant == color )
+			locationList.push_back( location );
+	}
 }
 
 //=====================================================================================
 void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList )
 {
+	for( int i = 0; i < ADJACENCIES; i++ )
+	{
+		Location* adjLocation = sourceLocation->GetAdjacency(i);
+		if( adjLocation && adjLocation->GetOccupant() == NONE )
+			destinationLocationList.push_back( adjLocation );
+	}
+
+	FindAllPossibleDestinationsRecursively( sourceLocation, destinationLocationList );
+}
+
+//=====================================================================================
+void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList )
+{
+	currentLocation->Visited( true );
+
+	for( int i = 0; i < ADJACENCIES; i++ )
+	{
+		Location* adjLocation = currentLocation->GetAdjacency(i);
+		if( !adjLocation || adjLocation->GetOccupant() == NONE )
+			continue;
+
+		adjLocation = adjLocation->GetAdjacency(i);
+		if( !adjLocation || adjLocation->GetOccupant() != NONE )
+			continue;
+
+		if( adjLocation->Visited() )
+			continue;
+
+		destinationLocationList.push_back( adjLocation );
+		FindAllPossibleDestinationsRecursively( adjLocation, destinationLocationList );
+	}
+
+	currentLocation->Visited( false );
 }
 
 //=====================================================================================

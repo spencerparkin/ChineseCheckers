@@ -45,16 +45,39 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 
 	if( !cache )
 		cache = new Cache();
+	
+	Board::Location* targetVertexLocation = nullptr;
+	Board::Location* sourceVertexLocation = nullptr;
+
+	for( Board::LocationMap::iterator iter = board->locationMap.begin(); iter != board->locationMap.end(); iter++ )
+	{
+		Board::Location* location = iter->second;
+
+		if( location->GetAdjacencyCount() == 2 )
+		{
+			if( location->GetZone() == color )
+				sourceVertexLocation = location;
+			else if( location->GetZone() == board->ZoneTarget( color ) )
+				targetVertexLocation = location;
+		}
+	}
+
+	wxASSERT( targetVertexLocation && sourceVertexLocation );
+
+	GeneralMetrics generalMetrics;
+	generalMetrics.generalMoveDir = c3ga::unit( targetVertexLocation->GetPosition() - sourceVertexLocation->GetPosition() );
+
+	int maxMoveCount = 2;
 
 	Board::MoveList moveList;
-	ExamineEveryOutcomeForBestMoveSequence( color, board, moveList, 3, cache );
+	ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache );
 
 	cache->MakeNextMove( move );
 	return true;
 }
 
 //=====================================================================================
-void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
+void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
 {
 	int winningColor = board->DetermineWinner();
 	
@@ -62,7 +85,7 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, Boa
 	{
 		Cache* newCache = new Cache( &moveList );
 
-		if( cache->Compare( color, board, newCache ) )
+		if( cache->Compare( color, board, generalMetrics, newCache ) )
 		{
 			delete cache;
 			cache = newCache;
@@ -98,7 +121,7 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, Boa
 
 				moveList.push_back( move );
 
-				ExamineEveryOutcomeForBestMoveSequence( color, board, moveList, maxMoveCount, cache );
+				ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache );
 
 				moveList.pop_back();
 
@@ -115,25 +138,28 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, Boa
 //=====================================================================================
 Brain::Cache::Cache( Board::MoveList* moveList /*= nullptr*/ )
 {
+	metrics = nullptr;
+
 	SetMoveList( moveList );
 }
 
 //=====================================================================================
 /*virtual*/ Brain::Cache::~Cache( void )
 {
+	delete metrics;
 }
 
 //=====================================================================================
 void Brain::Cache::SetMoveList( Board::MoveList* moveList )
 {
-	moveListInPlay.clear();
+	this->moveList.clear();
 
 	if( moveList )
 	{
 		Board::MoveList::iterator iter = moveList->begin();
 		while( iter != moveList->end() )
 		{
-			moveListInPlay.push_back( *iter );
+			this->moveList.push_back( *iter );
 			iter++;
 		}
 	}
@@ -142,10 +168,10 @@ void Brain::Cache::SetMoveList( Board::MoveList* moveList )
 //=====================================================================================
 bool Brain::Cache::IsValid( Board* board )
 {
-	if( moveListInPlay.size() == 0 )
+	if( moveList.size() == 0 )
 		return false;
 
-	Board::MoveList::iterator iter = moveListInPlay.begin();
+	Board::MoveList::iterator iter = moveList.begin();
 	if( !RecursivelyValidateMoveList( board, iter ) )
 		return false;
 
@@ -178,25 +204,72 @@ bool Brain::Cache::RecursivelyValidateMoveList( Board* board, Board::MoveList::i
 //=====================================================================================
 bool Brain::Cache::MakeNextMove( Board::Move& move )
 {
-	if( moveListInPlay.size() == 0 )
+	if( moveList.size() == 0 )
 		return false;
 
-	move = *moveListInPlay.begin();
-	moveListInPlay.pop_front();
+	move = *moveList.begin();
+	moveList.pop_front();
 
 	return true;
 }
 
 //=====================================================================================
-bool Brain::Cache::Compare( int color, Board* board, Cache* cache )
+bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cache )
 {
-	// In order of significance...
-	// 1) how many full to we make the target zone become?
-	// 2) smallest distance computed between target vertex and furthest-behind marble,
-	// 3) net distance moved by the entire move sequence (use integer measure: -2, -1, 0, 1, 2 per jump.
-	// To enforce significance, shift by 10s.
+	Metrics* thisMetrics = GetMetrics( color, board, generalMetrics );
+	Metrics* otherMetrics = cache->GetMetrics( color, board, generalMetrics );
 
-	return 0;
+	if( otherMetrics->targetZoneLandingCount > thisMetrics->targetZoneLandingCount )
+		return true;
+
+	if( otherMetrics->netProjectedSignedDistance > thisMetrics->netProjectedSignedDistance )
+		return true;
+
+	return false;
+}
+
+//=====================================================================================
+Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const GeneralMetrics& generalMetrics )
+{
+	if( !metrics )
+	{
+		metrics = new Metrics();
+
+		metrics->netProjectedSignedDistance = 0.0;
+
+		for( Board::MoveList::iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
+		{
+			const Board::Move& move = *iter;
+			
+			c3ga::vectorE3GA sourcePosition, destinationPosition;
+
+			board->PositionAtLocation( move.sourceID, sourcePosition );
+			board->PositionAtLocation( move.destinationID, destinationPosition );
+
+			c3ga::vectorE3GA moveVector = destinationPosition - sourcePosition;
+			double projectedSignedDistance = c3ga::lc( moveVector, generalMetrics.generalMoveDir );
+			metrics->netProjectedSignedDistance += projectedSignedDistance;
+		}
+
+		metrics->targetZoneLandingCount = 0;
+
+		int zoneTarget = board->ZoneTarget( color );
+
+		for( Board::MoveList::iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
+		{
+			const Board::Move& move = *iter;
+
+			Board::Location* sourceLocation = board->locationMap[ move.sourceID ];
+			Board::Location* destinationLocation = board->locationMap[ move.destinationID ];
+
+			if( sourceLocation->GetZone() != zoneTarget && destinationLocation->GetZone() == zoneTarget )
+				metrics->targetZoneLandingCount++;
+			else if( sourceLocation->GetZone() == zoneTarget && destinationLocation->GetZone() != zoneTarget )
+				metrics->targetZoneLandingCount--;
+		}
+	}
+
+	return metrics;
 }
 
 //=====================================================================================
