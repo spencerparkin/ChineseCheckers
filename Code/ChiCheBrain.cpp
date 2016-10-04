@@ -73,12 +73,17 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 	ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache );
 
 	cache->MakeNextMove( move );
+
+	cacheMap.insert( std::pair< int, Cache* >( color, cache ) );
+
 	return true;
 }
 
 //=====================================================================================
 void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
 {
+	// TODO: This needs work.
+
 	int winningColor = board->DetermineWinner();
 	
 	if( moveList.size() == maxMoveCount || winningColor == color )
@@ -98,6 +103,7 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 	}
 	else
 	{
+		// TODO: Shuffle this list.
 		Board::LocationList sourceLocationList;
 		board->FindParticpantLocations( color, sourceLocationList );
 
@@ -105,12 +111,16 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 		{
 			Board::Location* sourceLocation = *srcIter;
 
+			// TODO: Shuffle this list.
 			Board::LocationList destinationLocationList;
 			board->FindAllPossibleDestinations( sourceLocation, destinationLocationList );
 
 			for( Board::LocationList::iterator dstIter = destinationLocationList.begin(); dstIter != destinationLocationList.end(); dstIter++ )
 			{
 				Board::Location* destinationLocation = *dstIter;
+				int zone = destinationLocation->GetZone();
+				if( !( zone == Board::NONE || zone == color || zone == board->ZoneTarget( color ) ) )
+					continue;
 
 				Board::Move move;
 				move.sourceID = sourceLocation->GetLocationID();
@@ -184,17 +194,22 @@ bool Brain::Cache::RecursivelyValidateMoveList( Board* board, Board::MoveList::i
 	bool valid = true;
 	Board::Move move = *iter;
 
-	if( !board->ApplyMoveInternally( move ) )
+	Board::MoveSequence moveSequence;
+	if( !board->FindMoveSequence( move, moveSequence ) )
 		valid = false;
 	else
 	{
+		bool applied = board->ApplyMoveInternally( move );
+		wxASSERT( applied );
+	
 		iter++;
-		if( !RecursivelyValidateMoveList( board, iter ) )
-			valid = false;
+		if( iter != moveList.end() )
+			if( !RecursivelyValidateMoveList( board, iter ) )
+				valid = false;
 
 		Board::Move invMove;
 		move.Inverse( invMove );
-		bool applied = board->ApplyMoveInternally( invMove );
+		applied = board->ApplyMoveInternally( invMove );
 		wxASSERT( applied );
 	}
 
@@ -219,13 +234,16 @@ bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& gener
 	Metrics* thisMetrics = GetMetrics( color, board, generalMetrics );
 	Metrics* otherMetrics = cache->GetMetrics( color, board, generalMetrics );
 
-	if( otherMetrics->targetZoneLandingCount > thisMetrics->targetZoneLandingCount )
-		return true;
+	if( otherMetrics->targetZoneLandingCount < thisMetrics->targetZoneLandingCount )
+		return false;
 
-	if( otherMetrics->netProjectedSignedDistance > thisMetrics->netProjectedSignedDistance )
-		return true;
+	if( otherMetrics->netProjectedSignedDistance < thisMetrics->netProjectedSignedDistance )
+		return false;
 
-	return false;
+	if( cache->moveList.size() > moveList.size() && moveList.size() > 0 )
+		return false;
+
+	return true;
 }
 
 //=====================================================================================
