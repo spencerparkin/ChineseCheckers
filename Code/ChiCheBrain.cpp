@@ -103,7 +103,6 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 	}
 	else
 	{
-		// TODO: Shuffle this list.
 		Board::LocationList sourceLocationList;
 		board->FindParticpantLocations( color, sourceLocationList );
 
@@ -111,7 +110,6 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 		{
 			Board::Location* sourceLocation = *srcIter;
 
-			// TODO: Shuffle this list.
 			Board::LocationList destinationLocationList;
 			board->FindAllPossibleDestinations( sourceLocation, destinationLocationList );
 
@@ -231,18 +229,30 @@ bool Brain::Cache::MakeNextMove( Board::Move& move )
 //=====================================================================================
 bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cache )
 {
+	if( moveList.size() == 0 && cache->moveList.size() > 0 )
+		return true;
+	if( cache->moveList.size() == 0 )
+		return false;
+
 	Metrics* thisMetrics = GetMetrics( color, board, generalMetrics );
 	Metrics* otherMetrics = cache->GetMetrics( color, board, generalMetrics );
 
+	if( otherMetrics->targetZoneLandingCount > thisMetrics->targetZoneLandingCount )
+		return true;
 	if( otherMetrics->targetZoneLandingCount < thisMetrics->targetZoneLandingCount )
 		return false;
 
+	if( otherMetrics->netProjectedSignedDistance > thisMetrics->netProjectedSignedDistance )
+		return true;
 	if( otherMetrics->netProjectedSignedDistance < thisMetrics->netProjectedSignedDistance )
 		return false;
 
-	if( cache->moveList.size() > moveList.size() && moveList.size() > 0 )
+	if( cache->moveList.size() < moveList.size() )
+		return true;
+	if( cache->moveList.size() > moveList.size() )
 		return false;
 
+	// Here, the return value is arbitrary.  We might retur a random boolean to keep things interesting.
 	return true;
 }
 
