@@ -14,3 +14,5 @@ Tasks
     to join.  Have a computer player join.  Now it's the computer's turn, but they
     won't make their move and you can't do it for them.  The game is in a non-
     progression state.
+
+ -- You can't restart a server after 1 game is played.  Crash!
