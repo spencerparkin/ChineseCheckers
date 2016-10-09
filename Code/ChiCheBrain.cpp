@@ -32,12 +32,12 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 		}
 		else
 		{
-			// Sometimes it's dumb to use the cache if the new state of the game
-			// is such that the move we make stops short of how far we could go.
 			cache->MakeNextMove( move );
 
-			// TODO: See if the move can be improved here?  An improvement may or
-			//       may not invalidate the cache on our next turn.
+			// Sometimes a move is optimal at the time of its conception, but becomes sub-optimal
+			// at the time we're about to execute it.  So here we see if the given move can be
+			// made to be a little bit better.
+			ImproveMove( color, board, move );
 
 			return true;
 		}
@@ -45,7 +45,12 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 
 	if( !cache )
 		cache = new Cache();
-	
+
+	GeneralMetrics generalMetrics;
+	generalMetrics.targetCentroid.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
+	double targetCount = 0.0;
+	int targetZone = board->ZoneTarget( color );
+
 	Board::Location* targetVertexLocation = nullptr;
 	Board::Location* sourceVertexLocation = nullptr;
 
@@ -60,11 +65,20 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 			else if( location->GetZone() == board->ZoneTarget( color ) )
 				targetVertexLocation = location;
 		}
+
+		if( location->GetZone() == targetZone && location->GetOccupant() == Board::NONE )
+		{
+			generalMetrics.targetCentroid += location->GetPosition();
+			targetCount += 1.0;
+		}
 	}
 
 	wxASSERT( targetVertexLocation && sourceVertexLocation );
+	
+	if( targetCount == 0.0 )
+		targetCount = 10.0;
 
-	GeneralMetrics generalMetrics;
+	generalMetrics.targetCentroid *= 1.0 / targetCount;
 	generalMetrics.generalMoveDir = c3ga::unit( targetVertexLocation->GetPosition() - sourceVertexLocation->GetPosition() );
 
 	int maxMoveCount = 2;
@@ -80,9 +94,67 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 }
 
 //=====================================================================================
+void Brain::ImproveMove( int color, Board* board, Board::Move& move )
+{
+	Board::Location* sourceLocation = board->locationMap[ move.sourceID ];
+	Board::Location* destinationLocation = board->locationMap[ move.destinationID ];
+
+	// Single-jump moves can't be improved.
+	for( int i = 0; i < Board::ADJACENCIES; i++ )
+		if( sourceLocation->GetAdjacency(i) == destinationLocation )
+			return;
+
+	Board::Location* targetVertexLocation = nullptr;
+	for( Board::LocationMap::iterator iter = board->locationMap.begin(); iter != board->locationMap.end(); iter++ )
+	{
+		Board::Location* location = iter->second;
+		if( location->GetAdjacencyCount() == 2 && location->GetZone() == board->ZoneTarget( color ) )
+		{
+			targetVertexLocation = location;
+			break;
+		}
+	}
+
+	wxASSERT( targetVertexLocation );
+
+	ImproveMoveRecursively( destinationLocation, targetVertexLocation, destinationLocation );
+
+	move.destinationID = destinationLocation->GetLocationID();
+}
+
+//=====================================================================================
+void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* targetVertexLocation, Board::Location*& bestLocation )
+{
+	location->Visited( true );
+
+	double bestDistance = c3ga::norm( bestLocation->GetPosition() - targetVertexLocation->GetPosition() );
+	double distance = c3ga::norm( location->GetPosition() - targetVertexLocation->GetPosition() );
+	if( distance < bestDistance )
+		bestLocation = location;
+
+	for( int i = 0; i < Board::ADJACENCIES; i++ )
+	{
+		Board::Location* adjacentLocation = location->GetAdjacency(i);
+		if( adjacentLocation && adjacentLocation->GetOccupant() != Board::NONE )
+		{
+			adjacentLocation = adjacentLocation->GetAdjacency(i);
+			if( adjacentLocation && adjacentLocation->GetOccupant() == Board::NONE )
+			{
+				if( !adjacentLocation->Visited() )
+					ImproveMoveRecursively( adjacentLocation, targetVertexLocation, bestLocation );
+			}
+		}
+	}
+
+	location->Visited( false );
+}
+
+//=====================================================================================
 void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
 {
-	// TODO: This needs work.
+	// TODO: I see the computer lose most often when it leaves a straggler behind.
+	//       If we detect a straggler, we might restrict our set of considered moves
+	//       to only those that move the straggler forward.
 
 	int winningColor = board->DetermineWinner();
 	
@@ -242,17 +314,30 @@ bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& gener
 	if( otherMetrics->targetZoneLandingCount < thisMetrics->targetZoneLandingCount )
 		return false;
 
-	if( otherMetrics->netProjectedSignedDistance > thisMetrics->netProjectedSignedDistance )
-		return true;
-	if( otherMetrics->netProjectedSignedDistance < thisMetrics->netProjectedSignedDistance )
-		return false;
+	double eps = 1e-4;
+
+	if( fabs( otherMetrics->netProjectedSignedDistance - thisMetrics->netProjectedSignedDistance ) >= eps )
+	{
+		if( otherMetrics->netProjectedSignedDistance > thisMetrics->netProjectedSignedDistance )
+			return true;
+		if( otherMetrics->netProjectedSignedDistance < thisMetrics->netProjectedSignedDistance )
+			return false;
+	}
+
+	if( fabs( otherMetrics->totalDistanceToTargetCentroid - thisMetrics->totalDistanceToTargetCentroid ) >= eps )
+	{
+		if( otherMetrics->totalDistanceToTargetCentroid < thisMetrics->totalDistanceToTargetCentroid )
+			return true;
+		if( otherMetrics->totalDistanceToTargetCentroid > thisMetrics->totalDistanceToTargetCentroid )
+			return false;
+	}
 
 	if( cache->moveList.size() < moveList.size() )
 		return true;
 	if( cache->moveList.size() > moveList.size() )
 		return false;
 
-	// Here, the return value is arbitrary.  We might retur a random boolean to keep things interesting.
+	// Here, the return value is arbitrary.  We might return a random boolean to keep things interesting.
 	return true;
 }
 
@@ -264,36 +349,32 @@ Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const 
 		metrics = new Metrics();
 
 		metrics->netProjectedSignedDistance = 0.0;
-
-		for( Board::MoveList::iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
-		{
-			const Board::Move& move = *iter;
-			
-			c3ga::vectorE3GA sourcePosition, destinationPosition;
-
-			board->PositionAtLocation( move.sourceID, sourcePosition );
-			board->PositionAtLocation( move.destinationID, destinationPosition );
-
-			c3ga::vectorE3GA moveVector = destinationPosition - sourcePosition;
-			double projectedSignedDistance = c3ga::lc( moveVector, generalMetrics.generalMoveDir );
-			metrics->netProjectedSignedDistance += projectedSignedDistance;
-		}
-
 		metrics->targetZoneLandingCount = 0;
+		metrics->totalDistanceToTargetCentroid = 0.0;
 
 		int zoneTarget = board->ZoneTarget( color );
 
 		for( Board::MoveList::iterator iter = moveList.begin(); iter != moveList.end(); iter++ )
 		{
 			const Board::Move& move = *iter;
-
+			
 			Board::Location* sourceLocation = board->locationMap[ move.sourceID ];
 			Board::Location* destinationLocation = board->locationMap[ move.destinationID ];
+
+			const c3ga::vectorE3GA& sourcePosition = sourceLocation->GetPosition();
+			const c3ga::vectorE3GA& destinationPosition = destinationLocation->GetPosition();
+
+			c3ga::vectorE3GA moveVector = destinationPosition - sourcePosition;
+			double projectedSignedDistance = c3ga::lc( moveVector, generalMetrics.generalMoveDir );
+			metrics->netProjectedSignedDistance += projectedSignedDistance;
 
 			if( sourceLocation->GetZone() != zoneTarget && destinationLocation->GetZone() == zoneTarget )
 				metrics->targetZoneLandingCount++;
 			else if( sourceLocation->GetZone() == zoneTarget && destinationLocation->GetZone() != zoneTarget )
 				metrics->targetZoneLandingCount--;
+
+			double distanceToTargetCentroid = c3ga::norm( destinationPosition - generalMetrics.targetCentroid );
+			metrics->totalDistanceToTargetCentroid += distanceToTargetCentroid;
 		}
 	}
 

@@ -29,6 +29,7 @@ public:
 	struct GeneralMetrics
 	{
 		c3ga::vectorE3GA generalMoveDir;
+		c3ga::vectorE3GA targetCentroid;
 	};
 
 	//=====================================================================================
@@ -63,6 +64,7 @@ public:
 		{
 			double netProjectedSignedDistance;
 			int targetZoneLandingCount;
+			double totalDistanceToTargetCentroid;
 		};
 
 		Metrics* metrics;
@@ -72,6 +74,9 @@ public:
 	CacheMap cacheMap;
 
 	void FreeCacheMap( void );
+
+	void ImproveMove( int color, Board* board, Board::Move& move );
+	void ImproveMoveRecursively( Board::Location* location, Board::Location* targetVertexLocation, Board::Location*& bestLocation );
 };
 
 // ChiCheBrain.h
