@@ -43,6 +43,9 @@
     <ClInclude Include="Code\ChiCheSound.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="Code\ChiCheBrain.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\ChiCheApp.cpp">
@@ -76,6 +79,9 @@
       <Filter>Code\c3ga</Filter>
     </ClCompile>
     <ClCompile Include="Code\ChiCheSound.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheBrain.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

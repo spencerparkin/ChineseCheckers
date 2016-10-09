@@ -6,6 +6,8 @@ using namespace ChiChe;
 
 int Canvas::attributeList[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
 
+// TODO: It might be nice to swap out the lines for a nice 3D polygon-mesh.
+
 //=====================================================================================
 Canvas::Canvas( wxWindow* parent ) : wxGLCanvas( parent, wxID_ANY, attributeList )
 {
