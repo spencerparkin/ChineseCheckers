@@ -23,8 +23,8 @@ public:
 	bool FindGoodMoveForParticipant( int color, Board* board, Board::Move& move );
 
 	// Here we examine every outcome of the game up to the given move count as if every turn was our own.
-	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly = false );
-	void ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
+	static void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly = false );
+	static void ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
 
 	//=====================================================================================
 	struct GeneralMetrics
@@ -76,10 +76,34 @@ public:
 		Metrics* metrics;
 	};
 
+	//=====================================================================================
+	class Thread : public wxThread
+	{
+	public:
+
+		Thread( int color, const Board* board, const GeneralMetrics* generalMetrics, int maxMoveCount );
+		virtual ~Thread( void );
+
+		virtual void* Entry( void ) override;
+
+		enum State { STATE_READY_FOR_WORK, STATE_WORKING, STATE_RESULT_READY, STATE_DYING };
+		State state;
+		wxMutex mutex;
+		Board* board;
+		const GeneralMetrics* generalMetrics;
+		int sourceID;
+		Cache* cache;
+		int maxMoveCount;
+	};
+
+	typedef std::list< Thread* > ThreadList;
+
 	void CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& generalMetrics );
 
 	typedef std::map< int, Cache* > CacheMap;
 	CacheMap cacheMap;
+
+	static Cache* ChooseBetweenCaches( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cacheA, Cache* cacheB );
 
 	void FreeCacheMap( void );
 

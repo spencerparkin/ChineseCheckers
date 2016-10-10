@@ -306,6 +306,25 @@ void Board::DestroyPieces( void )
 }
 
 //=====================================================================================
+Board* Board::Clone( void ) const
+{
+	// Clones are only used internally and so are never meant to animate.
+	Board* boardClone = new Board( this->participants, false );
+
+	for( LocationMap::const_iterator iter = locationMap.cbegin(); iter != locationMap.cend(); iter++ )
+	{
+		const Location* location = iter->second;
+		
+		LocationMap::iterator iterClone = boardClone->locationMap.find( location->GetLocationID() );
+		Location* locationClone = iter->second;
+
+		locationClone->SetOccupant( location->GetOccupant() );
+	}
+
+	return boardClone;
+}
+
+//=====================================================================================
 bool Board::GetGameState( Socket::Packet& outPacket )
 {
 	outPacket.Reset();
@@ -805,7 +824,7 @@ int Board::Location::GetZone( void )
 }
 
 //=====================================================================================
-int Board::Location::GetLocationID( void )
+int Board::Location::GetLocationID( void ) const
 {
 	return locationID;
 }
@@ -817,7 +836,7 @@ void Board::Location::SetOccupant( int occupant )
 }
 
 //=====================================================================================
-int Board::Location::GetOccupant( void )
+int Board::Location::GetOccupant( void ) const
 {
 	return occupant;
 }

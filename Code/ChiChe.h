@@ -24,6 +24,7 @@
 #include <wx/event.h>
 #include <wx/dir.h>
 #include <wx/filename.h>
+#include <wx/thread.h>
 
 // OpenGL:
 #include <GL/gl.h>

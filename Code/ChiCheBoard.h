@@ -155,6 +155,9 @@ namespace ChiChe
 		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList );
 		void FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList );
 
+		// Allocate and return a copy of this board.
+		Board* Clone( void ) const;
+
 		//=====================================================================================
 		// Each of these represents a location on the game board.
 		class Location
@@ -172,12 +175,12 @@ namespace ChiChe
 			Location* GetAdjacency( int index );
 
 			int GetZone( void );
-			int GetLocationID( void );
+			int GetLocationID( void ) const;
 
 			void GetRenderColor( c3ga::vectorE3GA& renderColor );
 
 			void SetOccupant( int occupant );
-			int GetOccupant( void );
+			int GetOccupant( void ) const;
 
 			void Visited( bool visited );
 			bool Visited( void );

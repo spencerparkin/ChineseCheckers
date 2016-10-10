@@ -116,23 +116,12 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 	if( !cache )
 		cache = new Cache();
 
-	// We may want to expose this as the "difficulty level" of the computer, but before we
-	// do that, we'll have to optimize for the cases 3 and above, because it's just too slow.
-	int maxMoveCount = 2;
-
-	double axisDistance = c3ga::norm( generalMetrics.targetVertexLocation->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition() );
-	double distance = c3ga::norm( generalMetrics.leaderLocation->GetPosition() - generalMetrics.stragglerLocation->GetPosition() );
-
-	// This doesn't solve the straggler problem as well as I thought it might.
-	// (The computer often loses because it lets one or more marbles get too far behind.)
-	int sourceID = -1;
-	if( distance > ( 3.0 / 4.0 ) * axisDistance )
-		sourceID = generalMetrics.stragglerLocation->GetLocationID();
-
+	// This is how many moves ahead we're thinking.  Now, increasing this wouldn't necessarily be a good thing,
+	// not just because it's slow, but because the further out we go, the less likely the board state is going
+	// to be what we want it to be.  In other words, the cache would almost certainly become invalid before long anyway.
+	int maxMoveCount = 3;
 	Board::MoveList moveList;
-	ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, sourceID );
-	if( cache->GetMoveListSize() == 0 && sourceID >= 0 )
-		ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, -1 );
+	ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( color, board, generalMetrics, moveList, maxMoveCount, cache );
 
 	if( !cache->MakeNextMove( move ) )
 	{
@@ -188,45 +177,149 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 }
 
 //=====================================================================================
-void Brain::ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
+// I'm sure there's a faster threading model, but if this brings us down to seconds from minutes, I'm happy with that.
+/*static*/ void Brain::ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
 {
-	if( maxMoveCount <= 2 )
+	int cpuCount = wxThread::GetCPUCount();		// Does this count cores?
+	if( maxMoveCount <= 2 || cpuCount <= 1 )
 		return ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, -1 );
 
 	Board::LocationList sourceLocationList;
 	board->FindParticpantLocations( color, sourceLocationList );
 
-	// TODO: Create copies of the board for each list entry and then farm out the task of calling ExamineEveryOutcomeForBestMoveSequence with each of those and the sourceID.
-
-	for( Board::LocationList::iterator iter = sourceLocationList.begin(); iter != sourceLocationList.end(); iter++ )
+	ThreadList threadList;
+	for( int i = 0; i < cpuCount; i++ )
 	{
-		Board::Location* sourceLocation = *iter;
+		Thread* thread = new Thread( color, board, generalMetrics, maxMoveCount );
+		if( thread->Run() != wxTHREAD_NO_ERROR )
+			threadList.push_back( thread );
+		else
+			delete thread;
+	}
 
-		//Board* boardClone = board->Clone();
+	// Until we've processed all locations...
+	while( sourceLocationList.size() > 0 )
+	{
+		// If a thread has a result ready, process that result.
+		for( ThreadList::iterator iter = threadList.begin(); iter != threadList.end(); iter++ )
+		{
+			Thread* thread = *iter;
+			wxMutexLocker( thread->mutex );
+			if( thread->state == Thread::STATE_RESULT_READY )
+			{
+				cache = Brain::ChooseBetweenCaches( color, board, generalMetrics, cache, thread->cache );
+				thread->cache = nullptr;
+				thread->state = Thread::STATE_READY_FOR_WORK;
+			}
+		}
 
-		
+		// Grab a location that needs to be processed.
+		Board::LocationList::iterator locationIter = sourceLocationList.begin();
+		Board::Location* sourceLocation = *locationIter;
+
+		// Try to find a thread to process it.
+		Thread* readyThread = nullptr;
+		for( ThreadList::iterator iter = threadList.begin(); iter != threadList.end(); iter++ )
+		{
+			Thread* thread = *iter;
+			wxMutexLocker( thread->mutex );
+			if( thread->state == Thread::STATE_READY_FOR_WORK )
+			{
+				readyThread = thread;
+				break;
+			}
+		}
+
+		// All threads are busy, try again later.
+		if( !readyThread )
+			wxSleep(1);
+		else
+		{
+			// Off-load work to the thread.
+			wxMutexLocker( readyThread->mutex );
+			readyThread->sourceID = sourceLocation->GetLocationID();
+			readyThread->state = Thread::STATE_WORKING;
+			sourceLocationList.erase( locationIter );
+		}
+	}
+
+	// Shutdown all the threads.
+	while( threadList.size() > 0 )
+	{
+		ThreadList::iterator iter = threadList.begin();
+		Thread* thread = *iter;
+		wxMutexLocker( thread->mutex );
+		thread->state = Thread::STATE_DYING;
+		threadList.erase( iter );
 	}
 }
 
 //=====================================================================================
-void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly /*= false*/ )
+Brain::Thread::Thread( int color const Board* board, const GeneralMetrics* generalMetrics, int maxMoveCount ) : wxThread( wxTHREAD_DETACHED )
+{
+	state = STATE_READY_FOR_WORK;
+	this->board = board->Clone();
+	this->color = color;
+	this->generalMetrics = generalMetrics;
+	this->maxMoveCount = maxMoveCount;
+	sourceID = -1;
+	cache = nullptr;
+}
+
+//=====================================================================================
+/*virtual*/ Brain::Thread::~Thread( void )
+{
+}
+
+//=====================================================================================
+/*virtual*/ void* Brain::Thread::Entry( void )
+{
+	while( state != STATE_DYING )
+	{
+		{
+			wxMutexLocker( mutex );
+			if( state != STATE_WORKING )
+			{
+				wxSleep(1);
+				continue;
+			}
+		}
+
+		Board::MoveList moveList;
+		Brain::ExamineEveryOutcomeForBestMoveSequence( color, board, *generalMetrics, moveList, maxMoveCount, cache, sourceID );
+
+		{
+			wxMutexLocker( mutex );
+			if( state == STATE_WORKING )
+				state = STATE_RESULT_READY;
+		}
+	}
+
+	return 0;
+}
+
+//=====================================================================================
+/*static*/ Brain::Cache* Brain::ChooseBetweenCaches( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cacheA, Cache* cacheB )
+{
+	if( cacheA->Compare( color, board, generalMetrics, cacheB ) )
+	{
+		delete cacheA;
+		return cacheB;
+	}
+
+	delete cacheB;
+	return cacheA;
+}
+
+//=====================================================================================
+/*static*/ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly /*= false*/ )
 {
 	int winningColor = board->DetermineWinner();
 	
 	if( moveList.size() == maxMoveCount || winningColor == color )
 	{
 		Cache* newCache = new Cache( &moveList );
-
-		if( cache->Compare( color, board, generalMetrics, newCache ) )
-		{
-			delete cache;
-			cache = newCache;
-		}
-		else
-		{
-			delete newCache;
-			newCache = nullptr;
-		}
+		cache = ChooseBetweenCaches( color, board, generalMetrics, cache, newCache );
 	}
 	else
 	{
