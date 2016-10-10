@@ -25,6 +25,7 @@ namespace ChiChe
 			ID_DoinkEffect,
 			ID_FartEffect,
 			ID_HiyawEffect,
+			ID_NewProcess,
 			ID_Exit,
 			ID_About,
 			ID_Timer,
@@ -36,6 +37,7 @@ namespace ChiChe
 		void OnKillGame( wxCommandEvent& event );
 		void OnToggleSound( wxCommandEvent& event );
 		void OnToggleEffect( wxCommandEvent& event );
+		void OnNewProcess( wxCommandEvent& event );
 		void OnExit( wxCommandEvent& event );
 		void OnAbout( wxCommandEvent& event );
 		void OnUpdateMenuItemUI( wxUpdateUIEvent& event );
