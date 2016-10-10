@@ -188,8 +188,28 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 }
 
 //=====================================================================================
-// TODO: Can we speed this up by farming sub-trees of the recursion to a thread pool?
-void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID )
+void Brain::ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
+{
+	if( maxMoveCount <= 2 )
+		return ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, -1 );
+
+	Board::LocationList sourceLocationList;
+	board->FindParticpantLocations( color, sourceLocationList );
+
+	// TODO: Create copies of the board for each list entry and then farm out the task of calling ExamineEveryOutcomeForBestMoveSequence with each of those and the sourceID.
+
+	for( Board::LocationList::iterator iter = sourceLocationList.begin(); iter != sourceLocationList.end(); iter++ )
+	{
+		Board::Location* sourceLocation = *iter;
+
+		//Board* boardClone = board->Clone();
+
+		
+	}
+}
+
+//=====================================================================================
+void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly /*= false*/ )
 {
 	int winningColor = board->DetermineWinner();
 	
@@ -239,7 +259,7 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 
 				moveList.push_back( move );
 
-				ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, ( sourceID >= 0 ? move.destinationID : -1 ) );
+				ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, ( ( sourceID >= 0 && moveSourceOnly ) ? move.destinationID : -1 ) );
 
 				moveList.pop_back();
 

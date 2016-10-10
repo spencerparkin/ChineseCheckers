@@ -23,7 +23,8 @@ public:
 	bool FindGoodMoveForParticipant( int color, Board* board, Board::Move& move );
 
 	// Here we examine every outcome of the game up to the given move count as if every turn was our own.
-	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID );
+	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID, bool moveSourceOnly = false );
+	void ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
 
 	//=====================================================================================
 	struct GeneralMetrics
