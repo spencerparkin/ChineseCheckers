@@ -23,13 +23,17 @@ public:
 	bool FindGoodMoveForParticipant( int color, Board* board, Board::Move& move );
 
 	// Here we examine every outcome of the game up to the given move count as if every turn was our own.
-	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
+	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID );
 
 	//=====================================================================================
 	struct GeneralMetrics
 	{
 		c3ga::vectorE3GA generalMoveDir;
 		c3ga::vectorE3GA targetCentroid;
+		Board::Location* targetVertexLocation;
+		Board::Location* sourceVertexLocation;
+		Board::Location* stragglerLocation;
+		Board::Location* leaderLocation;
 	};
 
 	//=====================================================================================
@@ -45,6 +49,7 @@ public:
 		virtual ~Cache( void );
 
 		void SetMoveList( Board::MoveList* moveList );
+		int GetMoveListSize( void ) { return moveList.size(); }
 
 		bool IsValid( Board* board );
 		bool MakeNextMove( Board::Move& move );
@@ -70,12 +75,14 @@ public:
 		Metrics* metrics;
 	};
 
+	void CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& generalMetrics );
+
 	typedef std::map< int, Cache* > CacheMap;
 	CacheMap cacheMap;
 
 	void FreeCacheMap( void );
 
-	void ImproveMove( int color, Board* board, Board::Move& move );
+	void ImproveMove( int color, Board* board, Board::Move& move, const GeneralMetrics& generalMetrics );
 	void ImproveMoveRecursively( Board::Location* location, Board::Location* targetVertexLocation, Board::Location*& bestLocation );
 };
 

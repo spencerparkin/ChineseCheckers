@@ -16,8 +16,78 @@ Brain::Brain( void )
 }
 
 //=====================================================================================
+void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& generalMetrics )
+{
+	generalMetrics.targetCentroid.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
+	double targetCount = 0.0;
+	int targetZone = board->ZoneTarget( color );
+
+	generalMetrics.targetVertexLocation = nullptr;
+	generalMetrics.sourceVertexLocation = nullptr;
+
+	for( Board::LocationMap::iterator iter = board->locationMap.begin(); iter != board->locationMap.end(); iter++ )
+	{
+		Board::Location* location = iter->second;
+
+		if( location->GetAdjacencyCount() == 2 )
+		{
+			if( location->GetZone() == color )
+				generalMetrics.sourceVertexLocation = location;
+			else if( location->GetZone() == board->ZoneTarget( color ) )
+				generalMetrics.targetVertexLocation = location;
+		}
+
+		if( location->GetZone() == targetZone && location->GetOccupant() == Board::NONE )
+		{
+			generalMetrics.targetCentroid += location->GetPosition();
+			targetCount += 1.0;
+		}
+	}
+
+	wxASSERT( generalMetrics.targetVertexLocation && generalMetrics.sourceVertexLocation );
+
+	if( targetCount == 0.0 )
+		targetCount = 10.0;
+
+	c3ga::vectorE3GA moveAxis = generalMetrics.targetVertexLocation->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition();
+
+	generalMetrics.targetCentroid *= 1.0 / targetCount;
+	generalMetrics.generalMoveDir = c3ga::unit( moveAxis );
+
+	generalMetrics.stragglerLocation = nullptr;
+	generalMetrics.leaderLocation = nullptr;
+
+	double smallestProjectedDistance = 0.0;
+	double largestProjectedDistance = 0.0;
+
+	Board::LocationList locationList;
+	board->FindParticpantLocations( color, locationList );
+	for( Board::LocationList::iterator iter = locationList.begin(); iter != locationList.end(); iter++ )
+	{
+		Board::Location* location = *iter;
+
+		double projectedDistance = c3ga::lc( generalMetrics.generalMoveDir, location->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition() );
+
+		if( !generalMetrics.stragglerLocation || projectedDistance < smallestProjectedDistance )
+		{
+			smallestProjectedDistance = projectedDistance;
+			generalMetrics.stragglerLocation = location;
+		}
+
+		if( !generalMetrics.leaderLocation || projectedDistance > largestProjectedDistance )
+		{
+			largestProjectedDistance = projectedDistance;
+			generalMetrics.leaderLocation = location;
+		}
+	}
+}
+
+//=====================================================================================
 bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& move )
 {
+	GeneralMetrics generalMetrics;
+	CalculateGeneralMetrics( color, board, generalMetrics );
+
 	Cache* cache = nullptr;
 
 	CacheMap::iterator iter = cacheMap.find( color );
@@ -37,7 +107,7 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 			// Sometimes a move is optimal at the time of its conception, but becomes sub-optimal
 			// at the time we're about to execute it.  So here we see if the given move can be
 			// made to be a little bit better.
-			ImproveMove( color, board, move );
+			ImproveMove( color, board, move, generalMetrics );
 
 			return true;
 		}
@@ -46,55 +116,34 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 	if( !cache )
 		cache = new Cache();
 
-	GeneralMetrics generalMetrics;
-	generalMetrics.targetCentroid.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
-	double targetCount = 0.0;
-	int targetZone = board->ZoneTarget( color );
+	int maxMoveCount = 3;
 
-	Board::Location* targetVertexLocation = nullptr;
-	Board::Location* sourceVertexLocation = nullptr;
+	double axisDistance = c3ga::norm( generalMetrics.targetVertexLocation->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition() );
+	double distance = c3ga::norm( generalMetrics.leaderLocation->GetPosition() - generalMetrics.stragglerLocation->GetPosition() );
 
-	for( Board::LocationMap::iterator iter = board->locationMap.begin(); iter != board->locationMap.end(); iter++ )
-	{
-		Board::Location* location = iter->second;
-
-		if( location->GetAdjacencyCount() == 2 )
-		{
-			if( location->GetZone() == color )
-				sourceVertexLocation = location;
-			else if( location->GetZone() == board->ZoneTarget( color ) )
-				targetVertexLocation = location;
-		}
-
-		if( location->GetZone() == targetZone && location->GetOccupant() == Board::NONE )
-		{
-			generalMetrics.targetCentroid += location->GetPosition();
-			targetCount += 1.0;
-		}
-	}
-
-	wxASSERT( targetVertexLocation && sourceVertexLocation );
-	
-	if( targetCount == 0.0 )
-		targetCount = 10.0;
-
-	generalMetrics.targetCentroid *= 1.0 / targetCount;
-	generalMetrics.generalMoveDir = c3ga::unit( targetVertexLocation->GetPosition() - sourceVertexLocation->GetPosition() );
-
-	int maxMoveCount = 2;
+	// This doesn't solve the straggler problem as well as I thought it might.
+	// (The computer often loses because it lets one or more marbles get too far behind.)
+	int sourceID = -1;
+	if( distance > ( 3.0 / 4.0 ) * axisDistance )
+		sourceID = generalMetrics.stragglerLocation->GetLocationID();
 
 	Board::MoveList moveList;
-	ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache );
+	ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, sourceID );
+	if( cache->GetMoveListSize() == 0 && sourceID >= 0 )
+		ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, -1 );
 
-	cache->MakeNextMove( move );
+	if( !cache->MakeNextMove( move ) )
+	{
+		delete cache;
+		return false;
+	}
 
 	cacheMap.insert( std::pair< int, Cache* >( color, cache ) );
-
 	return true;
 }
 
 //=====================================================================================
-void Brain::ImproveMove( int color, Board* board, Board::Move& move )
+void Brain::ImproveMove( int color, Board* board, Board::Move& move, const GeneralMetrics& generalMetrics )
 {
 	Board::Location* sourceLocation = board->locationMap[ move.sourceID ];
 	Board::Location* destinationLocation = board->locationMap[ move.destinationID ];
@@ -104,20 +153,7 @@ void Brain::ImproveMove( int color, Board* board, Board::Move& move )
 		if( sourceLocation->GetAdjacency(i) == destinationLocation )
 			return;
 
-	Board::Location* targetVertexLocation = nullptr;
-	for( Board::LocationMap::iterator iter = board->locationMap.begin(); iter != board->locationMap.end(); iter++ )
-	{
-		Board::Location* location = iter->second;
-		if( location->GetAdjacencyCount() == 2 && location->GetZone() == board->ZoneTarget( color ) )
-		{
-			targetVertexLocation = location;
-			break;
-		}
-	}
-
-	wxASSERT( targetVertexLocation );
-
-	ImproveMoveRecursively( destinationLocation, targetVertexLocation, destinationLocation );
+	ImproveMoveRecursively( destinationLocation, generalMetrics.targetVertexLocation, destinationLocation );
 
 	move.destinationID = destinationLocation->GetLocationID();
 }
@@ -150,12 +186,8 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 }
 
 //=====================================================================================
-void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache )
+void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID )
 {
-	// TODO: I see the computer lose most often when it leaves a straggler behind.
-	//       If we detect a straggler, we might restrict our set of considered moves
-	//       to only those that move the straggler forward.
-
 	int winningColor = board->DetermineWinner();
 	
 	if( moveList.size() == maxMoveCount || winningColor == color )
@@ -176,7 +208,10 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 	else
 	{
 		Board::LocationList sourceLocationList;
-		board->FindParticpantLocations( color, sourceLocationList );
+		if( sourceID >= 0 )
+			sourceLocationList.push_back( board->locationMap[ sourceID ] );
+		else
+			board->FindParticpantLocations( color, sourceLocationList );
 
 		for( Board::LocationList::iterator srcIter = sourceLocationList.begin(); srcIter != sourceLocationList.end(); srcIter++ )
 		{
@@ -201,7 +236,7 @@ void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, con
 
 				moveList.push_back( move );
 
-				ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache );
+				ExamineEveryOutcomeForBestMoveSequence( color, board, generalMetrics, moveList, maxMoveCount, cache, ( sourceID >= 0 ? move.destinationID : -1 ) );
 
 				moveList.pop_back();
 
