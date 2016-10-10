@@ -116,7 +116,9 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 	if( !cache )
 		cache = new Cache();
 
-	int maxMoveCount = 3;
+	// We may want to expose this as the "difficulty level" of the computer, but before we
+	// do that, we'll have to optimize for the cases 3 and above, because it's just too slow.
+	int maxMoveCount = 2;
 
 	double axisDistance = c3ga::norm( generalMetrics.targetVertexLocation->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition() );
 	double distance = c3ga::norm( generalMetrics.leaderLocation->GetPosition() - generalMetrics.stragglerLocation->GetPosition() );
@@ -186,6 +188,7 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 }
 
 //=====================================================================================
+// TODO: Can we speed this up by farming sub-trees of the recursion to a thread pool?
 void Brain::ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache, int sourceID )
 {
 	int winningColor = board->DetermineWinner();
