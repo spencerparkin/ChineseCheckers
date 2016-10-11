@@ -310,13 +310,15 @@ Board* Board::Clone( void ) const
 {
 	// Clones are only used internally and so are never meant to animate.
 	Board* boardClone = new Board( this->participants, false );
+	
+	boardClone->whosTurn = whosTurn;
 
 	for( LocationMap::const_iterator iter = locationMap.cbegin(); iter != locationMap.cend(); iter++ )
 	{
 		const Location* location = iter->second;
 		
 		LocationMap::iterator iterClone = boardClone->locationMap.find( location->GetLocationID() );
-		Location* locationClone = iter->second;
+		Location* locationClone = iterClone->second;
 
 		locationClone->SetOccupant( location->GetOccupant() );
 	}

@@ -94,6 +94,7 @@ public:
 		int sourceID;
 		Cache* cache;
 		int maxMoveCount;
+		int color;
 	};
 
 	typedef std::list< Thread* > ThreadList;

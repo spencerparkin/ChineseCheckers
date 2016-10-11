@@ -190,8 +190,8 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 	ThreadList threadList;
 	for( int i = 0; i < cpuCount; i++ )
 	{
-		Thread* thread = new Thread( color, board, generalMetrics, maxMoveCount );
-		if( thread->Run() != wxTHREAD_NO_ERROR )
+		Thread* thread = new Thread( color, board, &generalMetrics, maxMoveCount );
+		if( thread->Run() == wxTHREAD_NO_ERROR )
 			threadList.push_back( thread );
 		else
 			delete thread;
@@ -204,7 +204,7 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 		for( ThreadList::iterator iter = threadList.begin(); iter != threadList.end(); iter++ )
 		{
 			Thread* thread = *iter;
-			wxMutexLocker( thread->mutex );
+			wxMutexLocker mutexLocker( thread->mutex );
 			if( thread->state == Thread::STATE_RESULT_READY )
 			{
 				cache = Brain::ChooseBetweenCaches( color, board, generalMetrics, cache, thread->cache );
@@ -222,7 +222,7 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 		for( ThreadList::iterator iter = threadList.begin(); iter != threadList.end(); iter++ )
 		{
 			Thread* thread = *iter;
-			wxMutexLocker( thread->mutex );
+			wxMutexLocker mutexLocker( thread->mutex );
 			if( thread->state == Thread::STATE_READY_FOR_WORK )
 			{
 				readyThread = thread;
@@ -236,9 +236,10 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 		else
 		{
 			// Off-load work to the thread.
-			wxMutexLocker( readyThread->mutex );
+			wxMutexLocker mutexLocker( readyThread->mutex );
 			readyThread->sourceID = sourceLocation->GetLocationID();
 			readyThread->state = Thread::STATE_WORKING;
+			readyThread->cache = new Cache();
 			sourceLocationList.erase( locationIter );
 		}
 	}
@@ -255,7 +256,7 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 }
 
 //=====================================================================================
-Brain::Thread::Thread( int color const Board* board, const GeneralMetrics* generalMetrics, int maxMoveCount ) : wxThread( wxTHREAD_DETACHED )
+Brain::Thread::Thread( int color, const Board* board, const GeneralMetrics* generalMetrics, int maxMoveCount ) : wxThread( wxTHREAD_DETACHED )
 {
 	state = STATE_READY_FOR_WORK;
 	this->board = board->Clone();
@@ -277,7 +278,7 @@ Brain::Thread::Thread( int color const Board* board, const GeneralMetrics* gener
 	while( state != STATE_DYING )
 	{
 		{
-			wxMutexLocker( mutex );
+			wxMutexLocker mutexLocker( mutex );
 			if( state != STATE_WORKING )
 			{
 				wxSleep(1);
@@ -289,7 +290,7 @@ Brain::Thread::Thread( int color const Board* board, const GeneralMetrics* gener
 		Brain::ExamineEveryOutcomeForBestMoveSequence( color, board, *generalMetrics, moveList, maxMoveCount, cache, sourceID );
 
 		{
-			wxMutexLocker( mutex );
+			wxMutexLocker mutexLocker( mutex );
 			if( state == STATE_WORKING )
 				state = STATE_RESULT_READY;
 		}
