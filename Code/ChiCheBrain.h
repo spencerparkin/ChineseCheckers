@@ -30,7 +30,6 @@ public:
 	struct GeneralMetrics
 	{
 		c3ga::vectorE3GA generalMoveDir;
-		c3ga::vectorE3GA targetCentroid;
 		Board::Location* targetVertexLocation;
 		Board::Location* sourceVertexLocation;
 		Board::Location* stragglerLocation;
@@ -70,7 +69,7 @@ public:
 		{
 			double netProjectedSignedDistance;
 			int targetZoneLandingCount;
-			double netDeltaToTargetCentroid;
+			double netDeltaToNearestTarget;
 		};
 
 		Metrics* metrics;

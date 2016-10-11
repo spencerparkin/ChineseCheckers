@@ -18,8 +18,6 @@ Brain::Brain( void )
 //=====================================================================================
 void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& generalMetrics )
 {
-	generalMetrics.targetCentroid.set( c3ga::vectorE3GA::coord_e1_e2_e3, 0.0, 0.0, 0.0 );
-	double targetCount = 0.0;
 	int targetZone = board->ZoneTarget( color );
 
 	generalMetrics.targetVertexLocation = nullptr;
@@ -36,22 +34,12 @@ void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& ge
 			else if( location->GetZone() == board->ZoneTarget( color ) )
 				generalMetrics.targetVertexLocation = location;
 		}
-
-		if( location->GetZone() == targetZone && location->GetOccupant() == Board::NONE )
-		{
-			generalMetrics.targetCentroid += location->GetPosition();
-			targetCount += 1.0;
-		}
 	}
 
 	wxASSERT( generalMetrics.targetVertexLocation && generalMetrics.sourceVertexLocation );
 
-	if( targetCount == 0.0 )
-		targetCount = 10.0;
-
 	c3ga::vectorE3GA moveAxis = generalMetrics.targetVertexLocation->GetPosition() - generalMetrics.sourceVertexLocation->GetPosition();
 
-	generalMetrics.targetCentroid *= 1.0 / targetCount;
 	generalMetrics.generalMoveDir = c3ga::unit( moveAxis );
 
 	generalMetrics.stragglerLocation = nullptr;
@@ -90,6 +78,8 @@ void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& ge
 //       have to be done under the constraint that some moves don't communite, because one may be
 //       dependent upon the other.  But the idea is to get more bang for our buck while the board
 //       is still in our favor.
+// BUG:  It can't seem to finish the game anymore.  Might have to hard-code the end-game for fast reproduction.
+//       Maybe write serializer/deserializer for debugging purposes.
 bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& move )
 {
 	GeneralMetrics generalMetrics;
@@ -126,7 +116,7 @@ bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& mo
 	// This is how many moves ahead we're thinking.  Now, increasing this wouldn't necessarily be a good thing,
 	// not just because it's slow, but because the further out we go, the less likely the board state is going
 	// to be what we want it to be.  In other words, the cache would almost certainly become invalid before long anyway.
-	int maxMoveCount = 3;
+	int maxMoveCount = 2;
 	Board::MoveList moveList;
 	ExamineEveryOutcomeForBestMoveSequenceOnMultipleThreads( color, board, generalMetrics, moveList, maxMoveCount, cache );
 
@@ -491,11 +481,11 @@ bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& gener
 			return false;
 	}
 
-	if( fabs( otherMetrics->netDeltaToTargetCentroid - thisMetrics->netDeltaToTargetCentroid ) >= eps )
+	if( fabs( otherMetrics->netDeltaToNearestTarget - thisMetrics->netDeltaToNearestTarget ) >= eps )
 	{
-		if( otherMetrics->netDeltaToTargetCentroid < thisMetrics->netDeltaToTargetCentroid )
+		if( otherMetrics->netDeltaToNearestTarget < thisMetrics->netDeltaToNearestTarget )
 			return true;
-		if( otherMetrics->netDeltaToTargetCentroid > thisMetrics->netDeltaToTargetCentroid )
+		if( otherMetrics->netDeltaToNearestTarget > thisMetrics->netDeltaToNearestTarget )
 			return false;
 	}
 
@@ -517,7 +507,7 @@ Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const 
 
 		metrics->netProjectedSignedDistance = 0.0;
 		metrics->targetZoneLandingCount = 0;
-		metrics->netDeltaToTargetCentroid = 0.0;
+		metrics->netDeltaToNearestTarget = 0.0;
 
 		int zoneTarget = board->ZoneTarget( color );
 
@@ -540,10 +530,17 @@ Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const 
 			else if( sourceLocation->GetZone() == zoneTarget && destinationLocation->GetZone() != zoneTarget )
 				metrics->targetZoneLandingCount--;
 
-			double preDistanceToTargetCentroid = c3ga::norm( sourcePosition - generalMetrics.targetCentroid );
-			double postDistanceToTargetCentroid = c3ga::norm( destinationPosition - generalMetrics.targetCentroid );
-			double deltaToTargetCentroid = postDistanceToTargetCentroid - preDistanceToTargetCentroid;
-			metrics->netDeltaToTargetCentroid += deltaToTargetCentroid;
+			if( sourceLocation->GetZone() != zoneTarget )
+			{
+				Board::Location* nearestTarget = board->FindNearestVacantTargetToLocation( sourceLocation );
+				if( nearestTarget )
+				{
+					double preDistanceToNearestTarget = c3ga::norm( sourcePosition - nearestTarget->GetPosition() );
+					double postDistanceToNearestTarget = c3ga::norm( destinationPosition - nearestTarget->GetPosition() );
+					double deltaToNearestTarget = postDistanceToNearestTarget - preDistanceToNearestTarget;
+					metrics->netDeltaToNearestTarget += deltaToNearestTarget;
+				}
+			}
 		}
 	}
 
