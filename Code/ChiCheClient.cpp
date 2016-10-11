@@ -171,7 +171,7 @@ bool Client::Run( void )
 		
 		// Okay, it's time to make our move.
 		Board::Move move;
-		if( !brain->FindGoodMoveForParticipant( color, board, move ) )
+		if( !brain->FindGoodMoveForWhosTurnItIs( board, move ) )
 		{
 			wxString textColor;
 			Board::ParticipantText( color, textColor );
