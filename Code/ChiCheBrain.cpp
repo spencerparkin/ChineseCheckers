@@ -74,10 +74,9 @@ void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& ge
 // TODO: There are still some really stupid moves being made by the computer near the end-game.
 //       Losing due to straggling is still a problem, and a straggler can even get completely
 //       stuck inside the opponent's zone.  Another thought I had is that a generated move sequence
-//       might be something that should be sorted: best move to worst.  This, of course, would have
-//       have to be done under the constraint that some moves don't communite, because one may be
-//       dependent upon the other.  But the idea is to get more bang for our buck while the board
-//       is still in our favor.
+//       might be something that should be sorted: best move to worst.  This, of course, would be
+//       subject to the constraint that some moves don't commute, because one may be dependent
+//       upon another.  But the idea is to get more bang for our buck while the board is still in our favor.
 // BUG:  It can't seem to finish the game anymore.  Might have to hard-code the end-game for fast reproduction.
 //       Maybe write serializer/deserializer for debugging purposes.
 bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& move )
