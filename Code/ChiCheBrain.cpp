@@ -83,6 +83,13 @@ void Brain::CalculateGeneralMetrics( int color, Board* board, GeneralMetrics& ge
 }
 
 //=====================================================================================
+// TODO: There are still some really stupid moves being made by the computer near the end-game.
+//       Losing due to straggling is still a problem, and a straggler can even get completely
+//       stuck inside the opponent's zone.  Another thought I had is that a generated move sequence
+//       might be something that should be sorted: best move to worst.  This, of course, would have
+//       have to be done under the constraint that some moves don't communite, because one may be
+//       dependent upon the other.  But the idea is to get more bang for our buck while the board
+//       is still in our favor.
 bool Brain::FindGoodMoveForParticipant( int color, Board* board, Board::Move& move )
 {
 	GeneralMetrics generalMetrics;
@@ -197,6 +204,9 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 			delete thread;
 	}
 
+	int sourceCount = sourceLocationList.size();
+	wxProgressDialog* progressDialog = new wxProgressDialog( "Chinese Checkers", "Thinking...", sourceCount, wxGetApp().GetFrame(), wxPD_APP_MODAL | wxPD_AUTO_HIDE );
+
 	// Until we've processed all locations...
 	while( sourceLocationList.size() > 0 )
 	{
@@ -241,6 +251,9 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 			readyThread->state = Thread::STATE_WORKING;
 			readyThread->cache = new Cache();
 			sourceLocationList.erase( locationIter );
+
+			progressDialog->Update( sourceCount - sourceLocationList.size(),
+					wxString::Format( "Thinking... %d/%d", sourceCount - sourceLocationList.size(), sourceCount ) );
 		}
 	}
 
@@ -253,6 +266,8 @@ void Brain::ImproveMoveRecursively( Board::Location* location, Board::Location* 
 		thread->state = Thread::STATE_DYING;
 		threadList.erase( iter );
 	}
+
+	delete progressDialog;
 }
 
 //=====================================================================================
@@ -476,11 +491,11 @@ bool Brain::Cache::Compare( int color, Board* board, const GeneralMetrics& gener
 			return false;
 	}
 
-	if( fabs( otherMetrics->totalDistanceToTargetCentroid - thisMetrics->totalDistanceToTargetCentroid ) >= eps )
+	if( fabs( otherMetrics->netDeltaToTargetCentroid - thisMetrics->netDeltaToTargetCentroid ) >= eps )
 	{
-		if( otherMetrics->totalDistanceToTargetCentroid < thisMetrics->totalDistanceToTargetCentroid )
+		if( otherMetrics->netDeltaToTargetCentroid < thisMetrics->netDeltaToTargetCentroid )
 			return true;
-		if( otherMetrics->totalDistanceToTargetCentroid > thisMetrics->totalDistanceToTargetCentroid )
+		if( otherMetrics->netDeltaToTargetCentroid > thisMetrics->netDeltaToTargetCentroid )
 			return false;
 	}
 
@@ -502,7 +517,7 @@ Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const 
 
 		metrics->netProjectedSignedDistance = 0.0;
 		metrics->targetZoneLandingCount = 0;
-		metrics->totalDistanceToTargetCentroid = 0.0;
+		metrics->netDeltaToTargetCentroid = 0.0;
 
 		int zoneTarget = board->ZoneTarget( color );
 
@@ -525,8 +540,10 @@ Brain::Cache::Metrics* Brain::Cache::GetMetrics( int color, Board* board, const 
 			else if( sourceLocation->GetZone() == zoneTarget && destinationLocation->GetZone() != zoneTarget )
 				metrics->targetZoneLandingCount--;
 
-			double distanceToTargetCentroid = c3ga::norm( destinationPosition - generalMetrics.targetCentroid );
-			metrics->totalDistanceToTargetCentroid += distanceToTargetCentroid;
+			double preDistanceToTargetCentroid = c3ga::norm( sourcePosition - generalMetrics.targetCentroid );
+			double postDistanceToTargetCentroid = c3ga::norm( destinationPosition - generalMetrics.targetCentroid );
+			double deltaToTargetCentroid = postDistanceToTargetCentroid - preDistanceToTargetCentroid;
+			metrics->netDeltaToTargetCentroid += deltaToTargetCentroid;
 		}
 	}
 

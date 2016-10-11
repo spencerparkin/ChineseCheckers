@@ -70,7 +70,7 @@ public:
 		{
 			double netProjectedSignedDistance;
 			int targetZoneLandingCount;
-			double totalDistanceToTargetCentroid;
+			double netDeltaToTargetCentroid;
 		};
 
 		Metrics* metrics;
