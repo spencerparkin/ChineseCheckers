@@ -155,9 +155,6 @@ namespace ChiChe
 		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList );
 		void FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList );
 
-		// Find the nearest vacant location in the target zone of the marble occupying the given location.
-		Location* FindNearestVacantTargetToLocation( Location* givenLocation );
-
 		// Allocate and return a copy of this board.
 		Board* Clone( void ) const;
 

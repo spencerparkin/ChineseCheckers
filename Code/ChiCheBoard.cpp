@@ -497,34 +497,6 @@ void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, L
 }
 
 //=====================================================================================
-Board::Location* Board::FindNearestVacantTargetToLocation( Location* givenLocation )
-{
-	Location* nearestTargetLocation = nullptr;
-	double smallestDistance = 0.0;
-
-	if( givenLocation->GetOccupant() != NONE )
-	{
-		int zoneTarget = ZoneTarget( givenLocation->GetOccupant() );
-
-		for( LocationMap::iterator iter = locationMap.begin(); iter != locationMap.end(); iter++ )
-		{
-			Location* location = iter->second;
-			if( location->GetZone() == zoneTarget && location->GetOccupant() == NONE )
-			{
-				double distance = c3ga::norm( givenLocation->GetPosition() - location->GetPosition() );
-				if( !nearestTargetLocation || distance < smallestDistance )
-				{
-					nearestTargetLocation = location;
-					smallestDistance = distance;
-				}
-			}
-		}
-	}
-
-	return nearestTargetLocation;
-}
-
-//=====================================================================================
 bool Board::SaveToXML( const wxString& xmlFile )
 {
 	return true;
