@@ -525,6 +525,18 @@ Board::Location* Board::FindNearestVacantTargetToLocation( Location* givenLocati
 }
 
 //=====================================================================================
+bool Board::SaveToXML( const wxString& xmlFile )
+{
+	return true;
+}
+
+//=====================================================================================
+bool Board::LoadFromXML( const wxString& xmlFile )
+{
+	return true;
+}
+
+//=====================================================================================
 void Board::Render( GLenum renderMode, int highlightLocationID )
 {
 	if( renderMode == GL_SELECT )

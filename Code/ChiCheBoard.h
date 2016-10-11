@@ -161,6 +161,10 @@ namespace ChiChe
 		// Allocate and return a copy of this board.
 		Board* Clone( void ) const;
 
+		// These are used to save and restore test cases for faster bug reproduction.
+		bool SaveToXML( const wxString& xmlFile );
+		bool LoadFromXML( const wxString& xmlFile );
+
 		//=====================================================================================
 		// Each of these represents a location on the game board.
 		class Location
