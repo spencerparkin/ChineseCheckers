@@ -3,9 +3,6 @@
 Tasks
 =====
 
- -- The AI client needs improvement.  Keep existing AI client and add a better one.
-    The user can then select from "computer (easy)" or "computer (hard)".
-	
  -- Actually test the program over a real network.  I have only tested the program
     on the loop-back device.
 
@@ -13,4 +10,8 @@ Tasks
     one of them leave; the one who's turn it is.  The other waits for another player
     to join.  Have a computer player join.  Now it's the computer's turn, but they
     won't make their move and you can't do it for them.  The game is in a non-
-    progression state.
+    progression state.  There are also crashes that happen when a game ends and
+    you try to start another, etc.
+
+ -- Provide feedback option as sending e-mail to account I setup?  Security may not allow it.
+
