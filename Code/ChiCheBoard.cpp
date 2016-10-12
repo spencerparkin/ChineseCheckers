@@ -459,7 +459,36 @@ void Board::FindParticpantLocations( int color, LocationList& locationList )
 }
 
 //=====================================================================================
-void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList )
+double Board::CalculateTotalDistanceToLocation( int color, const Location* location )
+{
+	LocationList locationList;
+	FindParticpantLocations( color, locationList );
+
+	double totalDistance = 0.0;
+
+	for( LocationList::iterator iter = locationList.begin(); iter != locationList.end(); iter++ )
+	{
+		Location* marbleLocation = *iter;
+		double distance = c3ga::norm( marbleLocation->GetPosition() - location->GetPosition() );
+		totalDistance += distance;
+	}
+
+	return totalDistance;
+}
+
+//=====================================================================================
+double Board::CalculateMoveDistance( const Move& move )
+{
+	c3ga::vectorE3GA sourcePosition, destinationPosition;
+
+	PositionAtLocation( move.sourceID, sourcePosition );
+	PositionAtLocation( move.destinationID, destinationPosition );
+
+	return c3ga::norm( sourcePosition - destinationPosition );
+}
+
+//=====================================================================================
+void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList, bool noIntermediates )
 {
 	for( int i = 0; i < ADJACENCIES; i++ )
 	{
@@ -468,13 +497,15 @@ void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList&
 			destinationLocationList.push_back( adjLocation );
 	}
 
-	FindAllPossibleDestinationsRecursively( sourceLocation, destinationLocationList );
+	FindAllPossibleDestinationsRecursively( sourceLocation, destinationLocationList, noIntermediates, 0 );
 }
 
 //=====================================================================================
-void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList )
+void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList, bool noIntermediates, int depth )
 {
 	currentLocation->Visited( true );
+
+	bool recursed = false;
 
 	for( int i = 0; i < ADJACENCIES; i++ )
 	{
@@ -489,9 +520,16 @@ void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, L
 		if( adjLocation->Visited() )
 			continue;
 
-		destinationLocationList.push_back( adjLocation );
-		FindAllPossibleDestinationsRecursively( adjLocation, destinationLocationList );
+		if( !noIntermediates )
+			destinationLocationList.push_back( adjLocation );
+
+		FindAllPossibleDestinationsRecursively( adjLocation, destinationLocationList, noIntermediates, depth + 1 );
+
+		recursed = true;
 	}
+
+	if( !recursed && noIntermediates && depth > 0 )
+		destinationLocationList.push_back( currentLocation );
 
 	currentLocation->Visited( false );
 }
@@ -868,7 +906,7 @@ Board::Piece* Board::Location::GetPiece( void )
 }
 
 //=====================================================================================
-const c3ga::vectorE3GA& Board::Location::GetPosition( void )
+const c3ga::vectorE3GA& Board::Location::GetPosition( void ) const
 {
 	return position;
 }

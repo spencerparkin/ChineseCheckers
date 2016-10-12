@@ -152,11 +152,17 @@ namespace ChiChe
 		void FindParticpantLocations( int color, LocationList& locationList );
 
 		// Return in the given list the set of all possible locations that can be reached by the given location.
-		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList );
-		void FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList );
+		void FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList, bool noIntermediates );
+		void FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList, bool noIntermediates, int depth );
 
 		// Allocate and return a copy of this board.
 		Board* Clone( void ) const;
+
+		// Compute and return the total distance of each occupant of the given color to the given location.
+		double CalculateTotalDistanceToLocation( int color, const Location* location );
+
+		// Compute and return the distance moved by the given move.
+		double CalculateMoveDistance( const Move& move );
 
 		// These are used to save and restore test cases for faster bug reproduction.
 		bool SaveToXML( const wxString& xmlFile );
@@ -192,7 +198,7 @@ namespace ChiChe
 			void SetPiece( Piece* piece );
 			Piece* GetPiece( void );
 
-			const c3ga::vectorE3GA& GetPosition( void );
+			const c3ga::vectorE3GA& GetPosition( void ) const;
 
 			int GetAdjacencyCount( void );
 
