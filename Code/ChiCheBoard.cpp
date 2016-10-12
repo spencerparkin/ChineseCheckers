@@ -306,6 +306,27 @@ void Board::DestroyPieces( void )
 }
 
 //=====================================================================================
+Board* Board::Clone( void ) const
+{
+	// Clones are only used internally and so are never meant to animate.
+	Board* boardClone = new Board( this->participants, false );
+	
+	boardClone->whosTurn = whosTurn;
+
+	for( LocationMap::const_iterator iter = locationMap.cbegin(); iter != locationMap.cend(); iter++ )
+	{
+		const Location* location = iter->second;
+		
+		LocationMap::iterator iterClone = boardClone->locationMap.find( location->GetLocationID() );
+		Location* locationClone = iterClone->second;
+
+		locationClone->SetOccupant( location->GetOccupant() );
+	}
+
+	return boardClone;
+}
+
+//=====================================================================================
 bool Board::GetGameState( Socket::Packet& outPacket )
 {
 	outPacket.Reset();
@@ -438,7 +459,36 @@ void Board::FindParticpantLocations( int color, LocationList& locationList )
 }
 
 //=====================================================================================
-void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList )
+double Board::CalculateTotalDistanceToLocation( int color, const Location* location )
+{
+	LocationList locationList;
+	FindParticpantLocations( color, locationList );
+
+	double totalDistance = 0.0;
+
+	for( LocationList::iterator iter = locationList.begin(); iter != locationList.end(); iter++ )
+	{
+		Location* marbleLocation = *iter;
+		double distance = c3ga::norm( marbleLocation->GetPosition() - location->GetPosition() );
+		totalDistance += distance;
+	}
+
+	return totalDistance;
+}
+
+//=====================================================================================
+double Board::CalculateMoveDistance( const Move& move )
+{
+	c3ga::vectorE3GA sourcePosition, destinationPosition;
+
+	PositionAtLocation( move.sourceID, sourcePosition );
+	PositionAtLocation( move.destinationID, destinationPosition );
+
+	return c3ga::norm( sourcePosition - destinationPosition );
+}
+
+//=====================================================================================
+void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList& destinationLocationList, bool noIntermediates )
 {
 	for( int i = 0; i < ADJACENCIES; i++ )
 	{
@@ -447,13 +497,15 @@ void Board::FindAllPossibleDestinations( Location* sourceLocation, LocationList&
 			destinationLocationList.push_back( adjLocation );
 	}
 
-	FindAllPossibleDestinationsRecursively( sourceLocation, destinationLocationList );
+	FindAllPossibleDestinationsRecursively( sourceLocation, destinationLocationList, noIntermediates, 0 );
 }
 
 //=====================================================================================
-void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList )
+void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, LocationList& destinationLocationList, bool noIntermediates, int depth )
 {
 	currentLocation->Visited( true );
+
+	bool recursed = false;
 
 	for( int i = 0; i < ADJACENCIES; i++ )
 	{
@@ -468,11 +520,30 @@ void Board::FindAllPossibleDestinationsRecursively( Location* currentLocation, L
 		if( adjLocation->Visited() )
 			continue;
 
-		destinationLocationList.push_back( adjLocation );
-		FindAllPossibleDestinationsRecursively( adjLocation, destinationLocationList );
+		if( !noIntermediates )
+			destinationLocationList.push_back( adjLocation );
+
+		FindAllPossibleDestinationsRecursively( adjLocation, destinationLocationList, noIntermediates, depth + 1 );
+
+		recursed = true;
 	}
 
+	if( !recursed && noIntermediates && depth > 0 )
+		destinationLocationList.push_back( currentLocation );
+
 	currentLocation->Visited( false );
+}
+
+//=====================================================================================
+bool Board::SaveToXML( const wxString& xmlFile )
+{
+	return true;
+}
+
+//=====================================================================================
+bool Board::LoadFromXML( const wxString& xmlFile )
+{
+	return true;
 }
 
 //=====================================================================================
@@ -805,7 +876,7 @@ int Board::Location::GetZone( void )
 }
 
 //=====================================================================================
-int Board::Location::GetLocationID( void )
+int Board::Location::GetLocationID( void ) const
 {
 	return locationID;
 }
@@ -817,7 +888,7 @@ void Board::Location::SetOccupant( int occupant )
 }
 
 //=====================================================================================
-int Board::Location::GetOccupant( void )
+int Board::Location::GetOccupant( void ) const
 {
 	return occupant;
 }
@@ -835,7 +906,7 @@ Board::Piece* Board::Location::GetPiece( void )
 }
 
 //=====================================================================================
-const c3ga::vectorE3GA& Board::Location::GetPosition( void )
+const c3ga::vectorE3GA& Board::Location::GetPosition( void ) const
 {
 	return position;
 }

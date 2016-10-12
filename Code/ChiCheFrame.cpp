@@ -14,6 +14,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	wxMenuItem* killGameMenuItem = new wxMenuItem( gameMenu, ID_KillGame, wxT( "Kill Game" ), wxT( "Discontinue a hosted game." ) );
 	wxMenuItem* toggleSoundMenuItem = new wxMenuItem( gameMenu, ID_ToggleSound, wxT( "Sound" ), wxT( "Toggle the playing of sound FX." ), wxITEM_CHECK );
 	wxMenuItem* effectMenuItem = new wxMenuItem( gameMenu, ID_Effect, wxT( "Effect" ), wxT( "Choose your sound effect." ) );
+	wxMenuItem* newProcessMenuItem = new wxMenuItem( gameMenu, ID_NewProcess, wxT( "New Process" ), wxT( "Invoke a new Chinese Checkers process." ) );
 	wxMenuItem* exitMenuItem = new wxMenuItem( gameMenu, ID_Exit, wxT( "Exit" ), wxT( "Exit the program." ) );
 
 	wxMenu* effectMenu = new wxMenu();
@@ -33,6 +34,8 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	gameMenu->AppendSeparator();
 	gameMenu->Append( toggleSoundMenuItem );
 	gameMenu->Append( effectMenuItem );
+	gameMenu->AppendSeparator();
+	gameMenu->Append( newProcessMenuItem );
 	gameMenu->AppendSeparator();
 	gameMenu->Append( exitMenuItem );
 
@@ -57,6 +60,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_MENU, &Frame::OnToggleEffect, this, ID_DoinkEffect );
 	Bind( wxEVT_MENU, &Frame::OnToggleEffect, this, ID_FartEffect );
 	Bind( wxEVT_MENU, &Frame::OnToggleEffect, this, ID_HiyawEffect );
+	Bind( wxEVT_MENU, &Frame::OnNewProcess, this, ID_NewProcess );
 	Bind( wxEVT_MENU, &Frame::OnExit, this, ID_Exit );
 	Bind( wxEVT_MENU, &Frame::OnAbout, this, ID_About );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_JoinGame );
@@ -199,6 +203,12 @@ void Frame::OnKillGame( wxCommandEvent& event )
 void Frame::OnExit( wxCommandEvent& event )
 {
 	Close( true );
+}
+
+//=====================================================================================
+void Frame::OnNewProcess( wxCommandEvent& event )
+{
+	wxExecute( "chiche", wxEXEC_ASYNC );
 }
 
 //=====================================================================================

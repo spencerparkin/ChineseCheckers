@@ -23,6 +23,10 @@
 # Built crap
 Build/
 ChineseCheckers
+*.snap
+Snap/stage/
+Snap/parts/
+Snap/prime/
 
 # Misc
 .sconf_temp/

@@ -18,65 +18,36 @@ public:
 	Brain( void );
 	virtual ~Brain( void );
 
-	// Try to determine a good move that could be made by the given participant based upon the current state of the game and our internal cache.
-	// Note that we do make changes to the given board, but we should always return it to its originally given state.
-	bool FindGoodMoveForParticipant( int color, Board* board, Board::Move& move );
+	// Note that we may make changes to the given board here, but we should always return it to its originally given state.
+	bool FindGoodMoveForWhosTurnItIs( Board* board, Board::Move& move );
 
-	// Here we examine every outcome of the game up to the given move count as if every turn was our own.
-	void ExamineEveryOutcomeForBestMoveSequence( int color, Board* board, const GeneralMetrics& generalMetrics, Board::MoveList& moveList, int maxMoveCount, Cache*& cache );
+private:
 
-	//=====================================================================================
-	struct GeneralMetrics
+	class Plan
 	{
-		c3ga::vectorE3GA generalMoveDir;
-		c3ga::vectorE3GA targetCentroid;
-	};
-
-	//=====================================================================================
-	class Cache
-	{
-	private:
-
-		struct Metrics;
-
 	public:
 
-		Cache( Board::MoveList* moveList = nullptr );
-		virtual ~Cache( void );
-
-		void SetMoveList( Board::MoveList* moveList );
-
-		bool IsValid( Board* board );
-		bool MakeNextMove( Board::Move& move );
-
-		// Return true if the given cache is better than this cache.
-		bool Compare( int color, Board* board, const GeneralMetrics& generalMetrics, Cache* cache );
-
-		Metrics* GetMetrics( int color, Board* board, const GeneralMetrics& generalMetrics );
-
-	private:
-
-		bool RecursivelyValidateMoveList( Board* board, Board::MoveList::iterator& iter );
+		Plan( Board::MoveList* moveList = nullptr, double totalDistanceToTarget = 0.0 );
+		virtual ~Plan( void );
 
 		Board::MoveList moveList;
 
-		struct Metrics
-		{
-			double netProjectedSignedDistance;
-			int targetZoneLandingCount;
-			double totalDistanceToTargetCentroid;
-		};
+		// If our plan is completely executed, it will bring us to within this distance of the target.
+		double totalDistanceToTarget;
 
-		Metrics* metrics;
+		double CalculateInitialMoveDistance( Board* board );
 	};
 
-	typedef std::map< int, Cache* > CacheMap;
-	CacheMap cacheMap;
+	typedef std::list< Plan* > PlanList;
+	PlanList planList;
 
-	void FreeCacheMap( void );
+	// Here we approximate all possible outcomes to a given depth by pretending it's always our turn.
+	void ExploreAllPossibleOutcomesToFindBestPlan( Board* board, Board::MoveList& moveList, int depth, Plan*& plan, Board::Location* targetVertexLocation );
 
-	void ImproveMove( int color, Board* board, Board::Move& move );
-	void ImproveMoveRecursively( Board::Location* location, Board::Location* targetVertexLocation, Board::Location*& bestLocation );
+	// The given board does not necessarily reflect either plan applied; we just need it for some calculations.
+	Plan* ChooseBetterPlan( Plan* planA, Plan* planB, Board* board, bool deleteWorsePlan );
+
+	void WipePlanList( void );
 };
 
 // ChiCheBrain.h
