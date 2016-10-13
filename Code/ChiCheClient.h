@@ -10,6 +10,7 @@ namespace ChiChe
 		enum PacketType
 		{
 			GAME_MOVE,
+			SCORE_BONUS,
 			BEGIN_COMPUTER_THINKING,
 			UPDATE_COMPUTER_THINKING,
 			END_COMPUTER_THINKING,
@@ -29,6 +30,10 @@ namespace ChiChe
 		bool Render( GLenum renderMode );
 		bool Animate( double frameRate );
 		bool ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hitCount );
+
+		int GetColor( void ) { return color; }
+
+		Socket* GetSocket( void ) { return socket; }
 
 	private:
 

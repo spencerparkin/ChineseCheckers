@@ -99,6 +99,18 @@ bool Client::Run( void )
 				}
 				break;
 			}
+			case Server::SCORE_BONUS:
+			{
+				wxInt32 participant;
+				wxInt64 scoreBonus;
+				Board::UnpackScoreBonus( inPacket, participant, scoreBonus );
+
+				board->ApplyScoreBonus( participant, scoreBonus );
+
+				// TODO: Play "Bonus!" wave?
+
+				break;
+			}
 			case Server::ASSIGN_COLOR:
 			{
 				wxInt32 data = *( wxInt32* )inPacket.GetData();

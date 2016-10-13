@@ -149,6 +149,21 @@ bool Server::ServiceClient( Participant* participant )
 				BroadcastPacket( outPacket );
 				break;
 			}
+			case Client::SCORE_BONUS:
+			{
+				wxInt32 participant;
+				wxInt64 scoreBonus;
+				Board::UnpackScoreBonus( inPacket, participant, scoreBonus );
+
+				if( !board->ApplyScoreBonus( participant, scoreBonus ) )
+					break;
+
+				Socket::Packet outPacket;
+				Board::PackScoreBonus( outPacket, participant, scoreBonus );
+				BroadcastPacket( outPacket );
+
+				break;
+			}
 			case Client::BEGIN_COMPUTER_THINKING:
 			case Client::UPDATE_COMPUTER_THINKING:
 			case Client::END_COMPUTER_THINKING:

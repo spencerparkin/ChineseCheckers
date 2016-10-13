@@ -1,7 +1,6 @@
 // ChiChe.h
 
-// Yes, I realize that this header is a terrible idea.
-// I'm too lazy to dismantle it at the moment.
+// TODO: Get rid of this header file!
 
 // wxWidgets:
 #include <wx/setup.h>
