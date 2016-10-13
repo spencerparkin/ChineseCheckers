@@ -2,19 +2,21 @@
 
 import os
 
-obj_env = Environment( parse_flags = '!wx-config --cxxflags' )
+obj_env = Environment()
+obj_env.MergeFlags( '!wx-config --cxxflags' )
+obj_env.MergeFlags( '!pkg-config --cflags --libs libmongoc-1.0' )
 obj_env.Append( CCFLAGS = '--std=c++11' )
 
 if not obj_env.GetOption( 'clean' ):
   conf = Configure( obj_env )
 
-  if not conf.CheckLib( 'wx_baseu-3.0' ):
-    print( 'wxWidgets may not be installed; couldn\'t find it.' )
-    Exit(1)
+  #if not conf.CheckLib( 'wx_baseu-3.0' ):
+  #  print( 'wxWidgets may not be installed; couldn\'t find it.' )
+  #  Exit(1)
 
-  if not conf.CheckLib( 'SDL2' ):
-    print( 'SDL2 may not be installed; could\'t find it.' )
-    Exit(1)
+  #if not conf.CheckLib( 'SDL2' ):
+  #  print( 'SDL2 may not be installed; could\'t find it.' )
+  #  Exit(1)
   
   obj_env = conf.Finish()
 
