@@ -2,4 +2,4 @@
 Name=Chinese Checkers
 Exec=chiche
 Type=Application
-Icon=${SNAP}/meta/gui/icon.png
+Icon=${SNAP}/meta/gui/icon.svg
