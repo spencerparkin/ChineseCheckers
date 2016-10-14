@@ -9,6 +9,7 @@
 #include "ChiChePanel.h"
 #include "ChiCheCanvasPanel.h"
 #include "ChiCheScorePanel.h"
+#include "ChiCheWinnerPanel.h"
 #include <wx/menu.h>
 #include <wx/aboutdlg.h>
 #include <wx/choicdlg.h>
@@ -61,10 +62,10 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 
 	wxMenu* panelMenu = new wxMenu();
 	wxMenuItem* scorePanelMenuItem = new wxMenuItem( panelMenu, ID_ScorePanelToggle, wxT( "Score Panel" ), wxT( "Toggle the score panel." ), wxITEM_CHECK );
-	wxMenuItem* highScorePanelMenuItem = new wxMenuItem( panelMenu, ID_HighScorePanelToggle, wxT( "High Score Panel" ), wxT( "Toggle the high-score panel." ), wxITEM_CHECK );
+	wxMenuItem* winnerPanelMenuItem = new wxMenuItem( panelMenu, ID_WinnerPanelToggle, wxT( "High Score Panel" ), wxT( "Toggle the high-score panel." ), wxITEM_CHECK );
 	wxMenuItem* chatMenuItem = new wxMenuItem( panelMenu, ID_ChatPanelToggle, wxT( "Chat Panel" ), wxT( "Toggle the chat panel" ), wxITEM_CHECK );
 	panelMenu->Append( scorePanelMenuItem );
-	panelMenu->Append( highScorePanelMenuItem );
+	panelMenu->Append( winnerPanelMenuItem );
 	panelMenu->Append( chatMenuItem );
 
 	wxMenu* helpMenu = new wxMenu();
@@ -93,7 +94,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_MENU, &Frame::OnExit, this, ID_Exit );
 	Bind( wxEVT_MENU, &Frame::OnAbout, this, ID_About );
 	Bind( wxEVT_MENU, &Frame::OnScorePanelToggle, this, ID_ScorePanelToggle );
-	Bind( wxEVT_MENU, &Frame::OnHighScorePanelToggle, this, ID_HighScorePanelToggle );
+	Bind( wxEVT_MENU, &Frame::OnWinnerPanelToggle, this, ID_WinnerPanelToggle );
 	Bind( wxEVT_MENU, &Frame::OnChatPanelToggle, this, ID_ChatPanelToggle );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_JoinGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HostGame );
@@ -105,13 +106,15 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_FartEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HiyawEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_ScorePanelToggle );
-	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HighScorePanelToggle );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_WinnerPanelToggle );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_ChatPanelToggle );
 	Bind( wxEVT_TIMER, &Frame::OnTimer, this, ID_Timer );
 	Bind( wxEVT_CLOSE_WINDOW, &Frame::OnClose, this );
 	Bind( wxEVT_ACTIVATE, &Frame::OnActivate, this );
 
 	TogglePanel( "Canvas Panel" );
+
+	// TODO: Rememer and restore aui-manager perspectives.
 
 	timer.Start( 50 );
 	continuousRefresh = true;
@@ -313,7 +316,7 @@ void Frame::OnAbout( wxCommandEvent& event )
 	aboutDialogInfo.SetName( wxT( "Chinese Checkers" ) );
 	aboutDialogInfo.SetVersion( wxT( "1.0" ) );
 	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license." ) );
-	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013 Spencer T. Parkin <spencer.parkin@disney.com>" ) );
+	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013, 2016 Spencer T. Parkin <spencer.parkin@disney.com>" ) );
 
 	wxAboutBox( aboutDialogInfo );
 }
@@ -380,9 +383,9 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 			event.Check( IsPanelInUse( "Score Panel" ) );
 			break;
 		}
-		case ID_HighScorePanelToggle:
+		case ID_WinnerPanelToggle:
 		{
-			event.Check( IsPanelInUse( "High Score Panel" ) );
+			event.Check( IsPanelInUse( "Winner Panel" ) );
 			break;
 		}
 		case ID_ChatPanelToggle:
@@ -496,9 +499,9 @@ void Frame::OnScorePanelToggle( wxCommandEvent& event )
 }
 
 //=====================================================================================
-void Frame::OnHighScorePanelToggle( wxCommandEvent& event )
+void Frame::OnWinnerPanelToggle( wxCommandEvent& event )
 {
-	TogglePanel( "High Score Panel" );
+	TogglePanel( "Winner Panel" );
 }
 
 //=====================================================================================
@@ -526,9 +529,9 @@ bool Frame::TogglePanel( const wxString& panelTitle )
 			panel = new CanvasPanel();
 		else if( panelTitle == "Score Panel" )
 			panel = new ScorePanel();
-		/*else if( panelTitle == "High Score Panel" )
-			panel = new HighScorePanel();
-		else if( panelTitle == "Chat Panel" )
+		else if( panelTitle == "Winner Panel" )
+			panel = new WinnerPanel();
+		/*else if( panelTitle == "Chat Panel" )
 			panel = new ChatPanel();*/
 
 		if( panel )

@@ -84,6 +84,7 @@ namespace ChiChe
 		typedef std::map< int, bool > VisitationMap;
 		typedef std::map< int, int > TargetCountMap;
 		typedef std::map< int, long > ScoreMap;
+		typedef std::map< int, int > TurnCountMap;
 
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
@@ -195,6 +196,9 @@ namespace ChiChe
 		bool SaveToXML( const wxString& xmlFile );
 		bool LoadFromXML( const wxString& xmlFile );
 
+		// Tell us how many turns the given participant has taken.
+		int GetTurnCount( int participant );
+
 		//=====================================================================================
 		// Each of these represents a location on the game board.
 		class Location
@@ -298,6 +302,7 @@ namespace ChiChe
 		PieceList pieceList;
 		bool animate;
 		ScoreMap scoreMap;
+		TurnCountMap turnCountMap;
 	};
 }
 

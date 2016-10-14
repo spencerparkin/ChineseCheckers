@@ -40,7 +40,7 @@ namespace ChiChe
 			ID_NewProcess,
 			ID_Exit,
 			ID_ScorePanelToggle,
-			ID_HighScorePanelToggle,
+			ID_WinnerPanelToggle,
 			ID_ChatPanelToggle,
 			ID_About,
 			ID_Timer,
@@ -60,7 +60,7 @@ namespace ChiChe
 		void OnClose( wxCloseEvent& event );
 		void OnActivate( wxActivateEvent& event );
 		void OnScorePanelToggle( wxCommandEvent& event );
-		void OnHighScorePanelToggle( wxCommandEvent& event );
+		void OnWinnerPanelToggle( wxCommandEvent& event );
 		void OnChatPanelToggle( wxCommandEvent& event );
 
 		void KillServer( void );

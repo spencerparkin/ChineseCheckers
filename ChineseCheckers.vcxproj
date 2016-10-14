@@ -106,12 +106,14 @@
     <ClInclude Include="Code\ChiCheCanvasPanel.h" />
     <ClInclude Include="Code\ChiCheClient.h" />
     <ClInclude Include="Code\ChiCheFrame.h" />
+    <ClInclude Include="Code\ChiCheMongo.h" />
     <ClInclude Include="Code\ChiChePanel.h" />
     <ClInclude Include="Code\ChiCheScorePanel.h" />
     <ClInclude Include="Code\ChiCheServer.h" />
     <ClInclude Include="Code\ChiCheSocket.h" />
     <ClInclude Include="Code\ChiCheSound.h" />
     <ClInclude Include="Code\ChiCheSphere.h" />
+    <ClInclude Include="Code\ChiCheWinnerPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\c3ga\c3ga.cpp" />
@@ -123,12 +125,14 @@
     <ClCompile Include="Code\ChiCheCanvasPanel.cpp" />
     <ClCompile Include="Code\ChiCheClient.cpp" />
     <ClCompile Include="Code\ChiCheFrame.cpp" />
+    <ClCompile Include="Code\ChiCheMongo.cpp" />
     <ClCompile Include="Code\ChiChePanel.cpp" />
     <ClCompile Include="Code\ChiCheScorePanel.cpp" />
     <ClCompile Include="Code\ChiCheServer.cpp" />
     <ClCompile Include="Code\ChiCheSocket.cpp" />
     <ClCompile Include="Code\ChiCheSound.cpp" />
     <ClCompile Include="Code\ChiCheSphere.cpp" />
+    <ClCompile Include="Code\ChiCheWinnerPanel.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

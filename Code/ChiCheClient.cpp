@@ -5,9 +5,11 @@
 #include "ChiCheBrain.h"
 #include "ChiCheFrame.h"
 #include "ChiCheApp.h"
+#include "ChiCheMongo.h"
 #include <wx/progdlg.h>
 #include <wx/generic/progdlgg.h>
 #include <wx/msgdlg.h>
+#include <wx/textdlg.h>
 
 using namespace ChiChe;
 
@@ -99,9 +101,28 @@ bool Client::Run( void )
 					int winner = board->DetermineWinner();
 					if( winner != Board::NONE )
 					{
-						wxString winnerText;
-						Board::ParticipantText( winner, winnerText );
-						wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+						if( color != winner )
+						{
+							wxString winnerText;
+							Board::ParticipantText( winner, winnerText );
+							wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+						}
+						else
+						{
+							if( wxYES == wxMessageBox( wxT( "You won!  Would you like to record your score in the database?" ), wxT( "You win!" ), wxYES_NO | wxCENTRE, wxGetApp().GetFrame() ) )
+							{
+								Mongo::WinEntry winEntry;
+								winEntry.dateOfWin.SetToCurrent();
+								winEntry.turnCount = board->GetTurnCount( color );
+								board->GetScore( color, winEntry.score );
+								winEntry.winnerName = wxGetTextFromUser( "Please enter your name for the record.", "Name Entry", wxEmptyString, wxGetApp().GetFrame() );
+								
+								Mongo* mongo = new Mongo();
+								if( !mongo->Connect() || !mongo->InsertWinEntry( winEntry ) )
+									wxMessageBox( wxT( "Database communication failed." ), wxT( "Error" ), wxICON_ERROR | wxCENTRE, wxGetApp().GetFrame() );
+								delete mongo;
+							}
+						}
 					}
 				}
 				break;
@@ -113,8 +134,6 @@ bool Client::Run( void )
 				Board::UnpackScoreBonus( inPacket, participant, scoreBonus );
 
 				board->ApplyScoreBonus( participant, scoreBonus );
-
-				// TODO: Play "Bonus!" wave?
 
 				break;
 			}

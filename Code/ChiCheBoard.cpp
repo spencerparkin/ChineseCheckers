@@ -69,6 +69,12 @@ wxEvtHandler* Board::GetEventHandler( void )
 //=====================================================================================
 void Board::NextTurn( void )
 {
+	TurnCountMap::iterator iter = turnCountMap.find( whosTurn );
+	if( iter == turnCountMap.end() )
+		turnCountMap.insert( std::pair< int, int >( whosTurn, 1 ) );
+	else
+		iter->second++;
+
 	IncrementTurn();
 	while( !IsParticipant( whosTurn ) )
 		IncrementTurn();
@@ -113,7 +119,7 @@ int Board::WhosTurn( void )
 //=====================================================================================
 /*static*/ int Board::ZoneTarget( int color )
 {
-	// This is baed on the layout map!
+	// This is based on the layout map!
 	return ( color + 2 ) % 6 + 1;
 }
 
@@ -131,6 +137,16 @@ int Board::WhosTurn( void )
 		case MAGENTA:	textColor = wxT( "magenta" );	break;
 		case CYAN:		textColor = wxT( "cyan" );		break;
 	}
+}
+
+//=====================================================================================
+int Board::GetTurnCount( int participant )
+{
+	TurnCountMap::iterator iter = turnCountMap.find( participant );
+	if( iter == turnCountMap.end() )
+		return -1;
+
+	return iter->second;
 }
 
 //=====================================================================================

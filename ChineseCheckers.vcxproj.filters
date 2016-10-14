@@ -55,6 +55,12 @@
     <ClInclude Include="Code\ChiCheCanvasPanel.h">
       <Filter>Code\Panels</Filter>
     </ClInclude>
+    <ClInclude Include="Code\ChiCheMongo.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheWinnerPanel.h">
+      <Filter>Code\Panels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\ChiCheApp.cpp">
@@ -100,6 +106,12 @@
       <Filter>Code\Panels</Filter>
     </ClCompile>
     <ClCompile Include="Code\ChiCheCanvasPanel.cpp">
+      <Filter>Code\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheMongo.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheWinnerPanel.cpp">
       <Filter>Code\Panels</Filter>
     </ClCompile>
   </ItemGroup>
