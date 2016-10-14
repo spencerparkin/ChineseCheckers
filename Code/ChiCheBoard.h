@@ -109,8 +109,8 @@ namespace ChiChe
 		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType );
 
 		// Pack and unpack score bonuses!
-		static bool Board::UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus );
-		static bool Board::PackScoreBonus( Socket::Packet& outPacket, wxInt32 participant, wxInt64 scoreBonus );
+		static bool UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus );
+		static bool PackScoreBonus( Socket::Packet& outPacket, wxInt32 participant, wxInt64 scoreBonus );
 
 		// Is the given color particpating in the game?
 		bool IsParticipant( int color );

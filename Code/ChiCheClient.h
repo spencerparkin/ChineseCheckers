@@ -8,6 +8,8 @@
 
 namespace ChiChe
 {
+	class Brain;
+	
 	//=====================================================================================
 	class Client : public wxEvtHandler
 	{
