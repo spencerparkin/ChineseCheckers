@@ -6,6 +6,9 @@
 #include "ChiCheServer.h"
 #include "ChiCheClient.h"
 #include "ChiCheSound.h"
+#include "ChiChePanel.h"
+#include "ChiCheCanvasPanel.h"
+#include "ChiCheScorePanel.h"
 #include <wx/menu.h>
 #include <wx/aboutdlg.h>
 #include <wx/choicdlg.h>
@@ -20,6 +23,10 @@ using namespace ChiChe;
 //=====================================================================================
 Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPosition, wxSize( 900, 600 ) ), timer( this, ID_Timer )
 {
+	panelUpdateNeeded = false;
+
+	auiManager = new wxAuiManager( this, wxAUI_MGR_LIVE_RESIZE | wxAUI_MGR_DEFAULT );
+
 	wxMenu* gameMenu = new wxMenu();
 	wxMenuItem* joinGameMenuItem = new wxMenuItem( gameMenu, ID_JoinGame, wxT( "Join Game" ), wxT( "Join a hosted game on the network." ) );
 	wxMenuItem* hostGameMenuItem = new wxMenuItem( gameMenu, ID_HostGame, wxT( "Host Game" ), wxT( "Host a game on the network." ) );
@@ -52,12 +59,21 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	gameMenu->AppendSeparator();
 	gameMenu->Append( exitMenuItem );
 
+	wxMenu* panelMenu = new wxMenu();
+	wxMenuItem* scorePanelMenuItem = new wxMenuItem( panelMenu, ID_ScorePanelToggle, wxT( "Score Panel" ), wxT( "Toggle the score panel." ), wxITEM_CHECK );
+	wxMenuItem* highScorePanelMenuItem = new wxMenuItem( panelMenu, ID_HighScorePanelToggle, wxT( "High Score Panel" ), wxT( "Toggle the high-score panel." ), wxITEM_CHECK );
+	wxMenuItem* chatMenuItem = new wxMenuItem( panelMenu, ID_ChatPanelToggle, wxT( "Chat Panel" ), wxT( "Toggle the chat panel" ), wxITEM_CHECK );
+	panelMenu->Append( scorePanelMenuItem );
+	panelMenu->Append( highScorePanelMenuItem );
+	panelMenu->Append( chatMenuItem );
+
 	wxMenu* helpMenu = new wxMenu();
 	wxMenuItem* aboutMenuItem = new wxMenuItem( helpMenu, ID_About, wxT( "About" ), wxT( "Popup a dialog giving information about this program." ) );
 	helpMenu->Append( aboutMenuItem );
 
 	menuBar = new wxMenuBar();
 	menuBar->Append( gameMenu, wxT( "Game" ) );
+	menuBar->Append( panelMenu, wxT( "Panel" ) );
 	menuBar->Append( helpMenu, wxT( "Help" ) );
 	SetMenuBar( menuBar );
 
@@ -76,6 +92,9 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_MENU, &Frame::OnNewProcess, this, ID_NewProcess );
 	Bind( wxEVT_MENU, &Frame::OnExit, this, ID_Exit );
 	Bind( wxEVT_MENU, &Frame::OnAbout, this, ID_About );
+	Bind( wxEVT_MENU, &Frame::OnScorePanelToggle, this, ID_ScorePanelToggle );
+	Bind( wxEVT_MENU, &Frame::OnHighScorePanelToggle, this, ID_HighScorePanelToggle );
+	Bind( wxEVT_MENU, &Frame::OnChatPanelToggle, this, ID_ChatPanelToggle );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_JoinGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HostGame );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_LeaveGame );
@@ -85,15 +104,14 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_DoinkEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_FartEffect );
 	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HiyawEffect );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_ScorePanelToggle );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_HighScorePanelToggle );
+	Bind( wxEVT_UPDATE_UI, &Frame::OnUpdateMenuItemUI, this, ID_ChatPanelToggle );
 	Bind( wxEVT_TIMER, &Frame::OnTimer, this, ID_Timer );
 	Bind( wxEVT_CLOSE_WINDOW, &Frame::OnClose, this );
 	Bind( wxEVT_ACTIVATE, &Frame::OnActivate, this );
 
-	canvas = new Canvas( this );
-
-	wxBoxSizer* boxSizer = new wxBoxSizer( wxHORIZONTAL );
-	boxSizer->Add( canvas, 1, wxALL | wxGROW, 0 );
-	SetSizer( boxSizer );
+	TogglePanel( "Canvas Panel" );
 
 	timer.Start( 50 );
 	continuousRefresh = true;
@@ -102,6 +120,8 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 //=====================================================================================
 /*virtual*/ Frame::~Frame( void )
 {
+	auiManager->UnInit();
+	delete auiManager;
 }
 
 //=====================================================================================
@@ -355,6 +375,54 @@ void Frame::OnUpdateMenuItemUI( wxUpdateUIEvent& event )
 			event.Check( wxGetApp().soundEffect == "Hiyaw" ? true : false );
 			break;
 		}
+		case ID_ScorePanelToggle:
+		{
+			event.Check( IsPanelInUse( "Score Panel" ) );
+			break;
+		}
+		case ID_HighScorePanelToggle:
+		{
+			event.Check( IsPanelInUse( "High Score Panel" ) );
+			break;
+		}
+		case ID_ChatPanelToggle:
+		{
+			event.Check( IsPanelInUse( "Chat Panel" ) );
+			break;
+		}
+	}
+}
+
+//=====================================================================================
+bool Frame::IsPanelInUse( const wxString& panelTitle, wxAuiPaneInfo** foundPaneInfo /*= nullptr*/ )
+{
+	if( foundPaneInfo )
+		*foundPaneInfo = nullptr;
+
+	wxAuiPaneInfoArray& paneInfoArray = auiManager->GetAllPanes();
+	for( int i = 0; i < ( signed )paneInfoArray.GetCount(); i++ )
+	{
+		wxAuiPaneInfo& paneInfo = paneInfoArray[i];
+		if( paneInfo.name == panelTitle )
+		{
+			if( foundPaneInfo )
+				*foundPaneInfo = &paneInfo;
+			return paneInfo.IsShown();
+		}
+	}
+
+	return false;
+}
+
+//=====================================================================================
+void Frame::UpdateAllPanels( void )
+{
+	wxAuiPaneInfoArray& paneInfoArray = auiManager->GetAllPanes();
+	for( int i = 0; i < ( signed )paneInfoArray.GetCount(); i++ )
+	{
+		wxAuiPaneInfo& paneInfo = paneInfoArray[i];
+		Panel* panel = ( Panel* )paneInfo.window;
+		panel->Update();
 	}
 }
 
@@ -370,6 +438,12 @@ void Frame::OnTimer( wxTimerEvent& event )
 		return;
 	inOnTimer = true;
 
+	if( panelUpdateNeeded )
+	{
+		UpdateAllPanels();
+		panelUpdateNeeded = false;
+	}
+
 	Server* server = wxGetApp().GetServer();
 	if( server && !server->Run() )
 		KillServer();
@@ -384,9 +458,9 @@ void Frame::OnTimer( wxTimerEvent& event )
 		}
 		else
 		{
-			client->Animate( canvas->FrameRate() );
+			client->Animate( GetCanvas()->FrameRate() );
 			if( continuousRefresh )
-				canvas->Refresh();
+				GetCanvas()->Refresh();
 		}
 	}
 
@@ -403,6 +477,78 @@ void Frame::OnActivate( wxActivateEvent& event )
 wxStatusBar* Frame::GetStatusBar( void )
 {
 	return statusBar;
+}
+
+//=====================================================================================
+Canvas* Frame::GetCanvas( void )
+{
+	wxAuiPaneInfo* foundPaneInfo;
+	bool found = IsPanelInUse( "Canvas Panel", &foundPaneInfo );
+	wxASSERT( found );
+	CanvasPanel* canvasPanel = ( CanvasPanel* )foundPaneInfo->window;
+	return canvasPanel->canvas;
+}
+
+//=====================================================================================
+void Frame::OnScorePanelToggle( wxCommandEvent& event )
+{
+	TogglePanel( "Score Panel" );
+}
+
+//=====================================================================================
+void Frame::OnHighScorePanelToggle( wxCommandEvent& event )
+{
+	TogglePanel( "High Score Panel" );
+}
+
+//=====================================================================================
+void Frame::OnChatPanelToggle( wxCommandEvent& event )
+{
+	TogglePanel( "Chat Panel" );
+}
+
+//=====================================================================================
+bool Frame::TogglePanel( const wxString& panelTitle )
+{
+	wxAuiPaneInfo* foundPaneInfo = nullptr;
+	if( IsPanelInUse( panelTitle, &foundPaneInfo ) )
+	{
+		Panel* panel = ( Panel* )foundPaneInfo->window;
+		auiManager->DetachPane( panel );
+		panel->Destroy();
+		auiManager->Update();
+	}
+	else
+	{
+		Panel* panel = nullptr;
+
+		if( panelTitle == "Canvas Panel" )
+			panel = new CanvasPanel();
+		else if( panelTitle == "Score Panel" )
+			panel = new ScorePanel();
+		/*else if( panelTitle == "High Score Panel" )
+			panel = new HighScorePanel();
+		else if( panelTitle == "Chat Panel" )
+			panel = new ChatPanel();*/
+
+		if( panel )
+		{
+			panel->Create( this );
+			panel->CreateControls();
+
+			wxAuiPaneInfo paneInfo;
+			panel->SetupPaneInfo( paneInfo );
+			paneInfo.CloseButton( true );
+			paneInfo.Caption( panelTitle ).Name( panelTitle );
+			paneInfo.Dockable().Show();
+			paneInfo.DestroyOnClose();
+
+			auiManager->AddPane( panel, paneInfo );
+			auiManager->Update();
+		}
+	}
+
+	return true;
 }
 
 // ChiCheFrame.cpp

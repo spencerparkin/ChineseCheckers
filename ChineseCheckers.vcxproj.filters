@@ -8,6 +8,9 @@
     <Filter Include="Code\c3ga">
       <UniqueIdentifier>{bb59d1c2-7d4e-4036-accb-63bf939ea1f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Panels">
+      <UniqueIdentifier>{f86bcd50-560e-48e0-bd3a-a695a54a47e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code\ChiCheApp.h">
@@ -42,6 +45,15 @@
     </ClInclude>
     <ClInclude Include="Code\ChiCheBrain.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiChePanel.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheScorePanel.h">
+      <Filter>Code\Panels</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ChiCheCanvasPanel.h">
+      <Filter>Code\Panels</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -80,6 +92,15 @@
     </ClCompile>
     <ClCompile Include="Code\ChiCheBrain.cpp">
       <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiChePanel.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheScorePanel.cpp">
+      <Filter>Code\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheCanvasPanel.cpp">
+      <Filter>Code\Panels</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -38,8 +38,8 @@ namespace ChiChe
 		bool ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hitCount );
 
 		int GetColor( void ) { return color; }
-
 		Socket* GetSocket( void ) { return socket; }
+		Board* GetBoard( void ) { return board; }
 
 	private:
 

@@ -2,7 +2,25 @@
 
 #pragma once
 
-// TODO: Add panel base class here.  I want a panel for scoring, one for the high-score list, and maybe one for chat.
-//       Need to unravel header file before I can start this, though.
+#include <wx/panel.h>
+#include <wx/aui/aui.h>
+
+namespace ChiChe
+{
+	class Panel;
+}
+
+//=====================================================================================
+class ChiChe::Panel : public wxPanel
+{
+public:
+
+	Panel( void );
+	virtual ~Panel( void );
+
+	virtual void SetupPaneInfo( wxAuiPaneInfo& paneInfo );
+	virtual void CreateControls( void ) = 0;
+	virtual void Update( void ) = 0;
+};
 
 // ChiChePanel.h

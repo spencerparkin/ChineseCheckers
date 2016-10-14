@@ -4,6 +4,7 @@
 #include "ChiCheClient.h"
 #include "ChiCheServer.h"
 #include "ChiCheApp.h"
+#include "ChiCheFrame.h"
 #include "ChiCheSphere.h"
 #include "ChiCheSound.h"
 #include <wx/xml/xml.h>
@@ -1001,6 +1002,8 @@ void Board::Location::GetRenderColor( c3ga::vectorE3GA& renderColor )
 //=====================================================================================
 bool Board::GetScore( int participant, long& score )
 {
+	if( !IsParticipant( participant ) )
+		return false;
 	score = 0;
 	ScoreMap::iterator iter = scoreMap.find( participant );
 	if( iter != scoreMap.end() )
@@ -1011,11 +1014,14 @@ bool Board::GetScore( int participant, long& score )
 //=====================================================================================
 bool Board::SetScore( int participant, long score )
 {
+	if( !IsParticipant( participant ) )
+		return false;
 	ScoreMap::iterator iter = scoreMap.find( participant );
 	if( iter == scoreMap.end() )
 		scoreMap.insert( std::pair< int, long >( participant, score ) );
 	else
 		iter->second = score;
+	wxGetApp().GetFrame()->PanelUpdateNeeded();
 	return true;
 }
 
@@ -1287,7 +1293,10 @@ void Board::Piece::Animate( double frameRate, Board* board )
 			moveSequence.pop_front();
 			move.destinationID = *moveSequence.begin();
 
-			board->AccumulateScoreForMove( move, GetLocationID(), jumpCount );
+			int locationID = GetLocationID();
+			int color = board->OccupantAtLocation( locationID );
+
+			board->AccumulateScoreForMove( move, color, jumpCount );
 
 			pivotAngle = 0.0;
 
@@ -1295,8 +1304,6 @@ void Board::Piece::Animate( double frameRate, Board* board )
 			wxString soundEffect = wxGetApp().soundEffect + wxString::Format( "%d", i );
 			wxGetApp().GetSound()->PlayWave( soundEffect );
 
-			int locationID = GetLocationID();
-			int color = board->OccupantAtLocation( locationID );
 			if( wxGetApp().GetClient()->GetColor() == color )
 			{
 				wxInt64 scoreBonus = 0;

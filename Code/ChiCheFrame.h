@@ -4,6 +4,7 @@
 
 #include <wx/frame.h>
 #include <wx/timer.h>
+#include <wx/aui/aui.h>
 
 namespace ChiChe
 {
@@ -18,6 +19,10 @@ namespace ChiChe
 		virtual ~Frame( void );
 
 		wxStatusBar* GetStatusBar( void );
+
+		Canvas* GetCanvas( void );
+
+		void PanelUpdateNeeded( void ) { panelUpdateNeeded = true; }
 
 	private:
 
@@ -34,6 +39,9 @@ namespace ChiChe
 			ID_HiyawEffect,
 			ID_NewProcess,
 			ID_Exit,
+			ID_ScorePanelToggle,
+			ID_HighScorePanelToggle,
+			ID_ChatPanelToggle,
 			ID_About,
 			ID_Timer,
 		};
@@ -51,15 +59,23 @@ namespace ChiChe
 		void OnTimer( wxTimerEvent& event );
 		void OnClose( wxCloseEvent& event );
 		void OnActivate( wxActivateEvent& event );
+		void OnScorePanelToggle( wxCommandEvent& event );
+		void OnHighScorePanelToggle( wxCommandEvent& event );
+		void OnChatPanelToggle( wxCommandEvent& event );
 
 		void KillServer( void );
 		void KillClient( void );
 
-		Canvas* canvas;
+		void UpdateAllPanels( void );
+		bool IsPanelInUse( const wxString& panelTitle, wxAuiPaneInfo** foundPaneInfo = nullptr );
+		bool TogglePanel( const wxString& panelTitle );
+
 		wxTimer timer;
 		wxMenuBar* menuBar;
 		wxStatusBar* statusBar;
 		bool continuousRefresh;
+		wxAuiManager* auiManager;
+		bool panelUpdateNeeded;
 	};
 }
 
