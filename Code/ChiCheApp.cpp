@@ -1,6 +1,9 @@
 // ChiCheApp.cpp
 
-#include "ChiChe.h"
+#include "ChiCheApp.h"
+#include "ChiCheFrame.h"
+#include "ChiCheSound.h"
+#include <wx/setup.h>
 
 using namespace ChiChe;
 

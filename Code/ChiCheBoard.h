@@ -1,5 +1,14 @@
 // ChiCheBoard.h
 
+#pragma once
+
+#include "ChiCheSocket.h"
+#include "c3ga/c3ga.h"
+#include <wx/glcanvas.h>
+#include <wx/event.h>
+#include <list>
+#include <map>
+
 namespace ChiChe
 {
 	//=====================================================================================

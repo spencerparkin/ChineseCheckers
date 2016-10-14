@@ -1,5 +1,9 @@
 // ChiCheSocket.h
 
+#pragma once
+
+#include <wx/socket.h>
+
 namespace ChiChe
 {
 	//=====================================================================================

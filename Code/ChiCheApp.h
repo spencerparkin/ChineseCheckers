@@ -1,7 +1,16 @@
 // ChiCheApp.h
 
+#pragma once
+
+#include <wx/app.h>
+
 namespace ChiChe
 {
+	class Frame;
+	class Client;
+	class Server;
+	class Sound;
+
 	//=====================================================================================
 	class App : public wxApp
 	{

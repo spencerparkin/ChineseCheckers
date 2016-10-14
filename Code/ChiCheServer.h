@@ -1,7 +1,15 @@
 // ChiCheServer.h
 
+#pragma once
+
+#include "ChiCheSocket.h"
+#include <list>
+
 namespace ChiChe
 {
+	class Socket;
+	class Board;
+
 	//=====================================================================================
 	class Server
 	{

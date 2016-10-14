@@ -1,6 +1,13 @@
 // ChiCheClient.cpp
 
-#include "ChiChe.h"
+#include "ChiCheClient.h"
+#include "ChiCheServer.h"
+#include "ChiCheBrain.h"
+#include "ChiCheFrame.h"
+#include "ChiCheApp.h"
+#include <wx/progdlg.h>
+#include <wx/generic/progdlgg.h>
+#include <wx/msgdlg.h>
 
 using namespace ChiChe;
 

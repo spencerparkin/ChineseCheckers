@@ -1,5 +1,9 @@
 // ChiCheSphere.h
 
+#pragma once
+
+#include "c3ga/c3ga.h"
+
 namespace ChiChe
 {
 	//=====================================================================================

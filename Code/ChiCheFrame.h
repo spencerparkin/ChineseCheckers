@@ -1,7 +1,14 @@
 // ChiCheFrame.h
 
+#pragma once
+
+#include <wx/frame.h>
+#include <wx/timer.h>
+
 namespace ChiChe
 {
+	class Canvas;
+
 	//=====================================================================================
 	class Frame : public wxFrame
 	{

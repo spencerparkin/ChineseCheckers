@@ -1,6 +1,7 @@
 // ChiCheSphere.cpp
 
-#include "ChiChe.h"
+#include "ChiCheSphere.h"
+#include <wx/glcanvas.h>
 
 using namespace ChiChe;
 

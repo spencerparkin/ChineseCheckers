@@ -1,6 +1,19 @@
 // ChiCheFrame.cpp
 
-#include "ChiChe.h"
+#include "ChiCheFrame.h"
+#include "ChiCheApp.h"
+#include "ChiCheCanvas.h"
+#include "ChiCheServer.h"
+#include "ChiCheClient.h"
+#include "ChiCheSound.h"
+#include <wx/menu.h>
+#include <wx/aboutdlg.h>
+#include <wx/choicdlg.h>
+#include <wx/numdlg.h>
+#include <wx/textdlg.h>
+#include <wx/msgdlg.h>
+#include <wx/sizer.h>
+#include <wx/tokenzr.h>
 
 using namespace ChiChe;
 

@@ -10,9 +10,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Code\ChiChe.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Code\ChiCheApp.h">
       <Filter>Code</Filter>
     </ClInclude>

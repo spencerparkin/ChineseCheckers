@@ -1,6 +1,12 @@
 // ChiCheBoard.cpp
 
-#include "ChiChe.h"
+#include "ChiCheBoard.h"
+#include "ChiCheClient.h"
+#include "ChiCheServer.h"
+#include "ChiCheApp.h"
+#include "ChiCheSphere.h"
+#include "ChiCheSound.h"
+#include <wx/xml/xml.h>
 
 using namespace ChiChe;
 
@@ -798,7 +804,7 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 	if( piece )
 		piece->ResetAnimation( moveSequence );
 
-	if( wxGetApp().GetClient().GetColor() == whosTurn )
+	if( wxGetApp().GetClient()->GetColor() == whosTurn )
 	{
 		long scoreBonus = 0;
 

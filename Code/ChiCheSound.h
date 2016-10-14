@@ -1,5 +1,17 @@
 // ChiCheSound.h
 
+#pragma once
+
+#include <math.h>
+#include <list>
+#include <wx/string.h>
+
+#ifdef WIN32
+#	include <SDL.h>
+#else
+#	include <SDL2/SDL.h>
+#endif //WIN32
+
 namespace ChiChe
 {
 	//=====================================================================================

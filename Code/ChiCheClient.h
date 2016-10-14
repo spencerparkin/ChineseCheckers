@@ -1,5 +1,11 @@
 // ChiCheClient.h
 
+#pragma once
+
+#include "ChiCheBoard.h"
+#include <wx/event.h>
+#include <wx/glcanvas.h>
+
 namespace ChiChe
 {
 	//=====================================================================================

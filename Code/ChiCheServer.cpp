@@ -1,6 +1,8 @@
 // ChiCheServer.cpp
 
-#include "ChiChe.h"
+#include "ChiCheServer.h"
+#include "ChiCheClient.h"
+#include "ChiCheBoard.h"
 
 using namespace ChiChe;
 

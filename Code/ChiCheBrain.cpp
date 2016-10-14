@@ -1,6 +1,8 @@
 // ChiCheBrain.cpp
 
-#include "ChiChe.h"
+#include "ChiCheBrain.h"
+#include <wx/thread.h>
+#include <wx/progdlg.h>
 
 using namespace ChiChe;
 
