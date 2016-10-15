@@ -236,7 +236,9 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 
 		FreeWinEntryList( winEntryList );
 
-		//bsonQuery = json_as_bson( jsonQuery );
+		bsonQuery = json_as_bson( jsonQuery );
+		if( !bsonQuery )
+			break;
 
 		cursor = mongoc_collection_find( win_collection, MONGOC_QUERY_NONE, 0, winEntryListSize, 0, bsonQuery, NULL, NULL );
 		if( !cursor )
