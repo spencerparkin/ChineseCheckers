@@ -5,6 +5,7 @@ import os
 obj_env = Environment()
 obj_env.MergeFlags( '!wx-config --cxxflags' )
 obj_env.MergeFlags( '!pkg-config --cflags --libs libmongoc-1.0' )
+obj_env.MergeFlags( '!pkg-config --cflags --libs libbson-1.0' )
 obj_env.Append( CCFLAGS = '--std=c++11' )
 
 if not obj_env.GetOption( 'clean' ):
@@ -33,6 +34,8 @@ prog_env = Environment( PROGNAME = 'ChineseCheckers', parse_flags = '!wx-config 
 prog_env.Append( LIBS = '-lGL' )
 prog_env.Append( LIBS = '-lGLU' )
 prog_env.Append( LIBS = '-lSDL2' )
+prog_env.MergeFlags( '!pkg-config --libs libbson-1.0' )
+prog_env.MergeFlags( '!pkg-config --libs libmongoc-1.0' )
 prog = prog_env.Program( '$PROGNAME', source = object_list )
 
 dest_dir = '/usr/local'
