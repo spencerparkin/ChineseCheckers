@@ -39,7 +39,7 @@ public:
 		virtual unsigned int GetColumnCount( void ) const override;
 		virtual wxString GetColumnType( unsigned int col ) const override;
 		virtual void GetValue( wxVariant& varient, const wxDataViewItem& item, unsigned int col ) const override;
-		virtual bool SetValue( const wxVariant& variant, const wxDataViewItem& item, unsigned int col ) const override;
+		virtual bool SetValue( const wxVariant& variant, const wxDataViewItem& item, unsigned int col ) override;
 
 		Mongo::WinEntryList winEntryList;
 	};

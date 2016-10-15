@@ -5,6 +5,8 @@
 #include <rapidjson/writer.h>
 #include <wx/string.h>
 #include <wx/utils.h>
+#include <bson.h>
+#include <mongoc.h>
 
 using namespace ChiChe;
 
@@ -77,7 +79,7 @@ bool Mongo::Disconnect( void )
 }
 
 //=====================================================================================
-bool Mongo::WinEntryToBson( const WinEntry& winEntry, bson_t*& bsonDoc )
+bool Mongo::WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc )
 {
 	bool success = false;
 
@@ -86,10 +88,10 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, bson_t*& bsonDoc )
 		bsonDoc = nullptr;
 
 		rapidjson::Document doc;
-		doc[ "winnerName" ].SetString( winEntry.winnerName );
-		doc[ "score" ].SetLong( winEntry.score );
-		doc[ "turnCount" ].SetInt( winEntry.turnCount );
-		doc[ "dateOfWin" ].SetString( winEntry.dateOfWin.Format() );
+		//doc[ "winnerName" ].SetString( winEntry.winnerName );
+		//doc[ "score" ].SetLong( winEntry.score );
+		//doc[ "turnCount" ].SetInt( winEntry.turnCount );
+		//doc[ "dateOfWin" ].SetString( winEntry.dateOfWin.Format() );
 
 		rapidjson::StringBuffer stringBuffer;
 		rapidjson::Writer< rapidjson::StringBuffer > writer( stringBuffer );
@@ -97,9 +99,9 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, bson_t*& bsonDoc )
 
 		const char* jsonDoc = stringBuffer.GetString();
 
-		bsonDoc = json_as_bson( jsonDoc, NULL );
-		if( !bsonDoc )
-			break;
+		//bsonDoc = json_as_bson( jsonDoc, NULL );
+		//if( !bsonDoc )
+		//	break;
 
 		success = true;
 	}
@@ -109,7 +111,7 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, bson_t*& bsonDoc )
 }
 
 //=====================================================================================
-bool Mongo::WinEntryFromBson( WinEntry& winEntry, const bson_t* bsonDoc )
+bool Mongo::WinEntryFromBson( WinEntry& winEntry, const _bson_t* bsonDoc )
 {
 	bool success = false;
 	char* jsonDoc = nullptr;
@@ -119,11 +121,11 @@ bool Mongo::WinEntryFromBson( WinEntry& winEntry, const bson_t* bsonDoc )
 		jsonDoc = bson_as_json( bsonDoc, NULL );
 
 		rapidjson::Document doc;
-		if( !doc.Parse( jsonDoc ) )
-			break;
+		//if( !doc.Parse( jsonDoc ) )
+		//	break;
 
 		winEntry.winnerName = doc[ "winnerName" ].GetString();
-		winEntry.score = doc[ "score" ].GetLong();
+		//winEntry.score = doc[ "score" ].GetLong();
 		winEntry.turnCount = doc[ "turnCount" ].GetInt();
 		wxString dateOfWin = doc[ "dateOfWin" ].GetString();
 		winEntry.dateOfWin.ParseDateTime( dateOfWin );
@@ -153,7 +155,7 @@ bool Mongo::InsertWinEntry( const WinEntry& winEntry )
 
 		// Note that a cap has been put on the collection, we we can add to it without bound and not worry about overflowing our quota.
 		// Oldest documents are kicked out to make room for new documents.  There is room for a very large number of documents!
-		if( !mongo_collection_insert( win_collection, MONGOC_INSERT_NONE, bsonDoc, MONGOC_WRITE_CONCERN_W_DEFAULT, NULL ) )
+		if( !mongoc_collection_insert( win_collection, MONGOC_INSERT_NONE, bsonDoc, NULL, NULL ) )
 			break;
 
 		success = true;
@@ -198,7 +200,7 @@ bool Mongo::GetFastestWinList( WinEntryList& winEntryList, int winEntryListSize 
 bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, const wxString& jsonQuery )
 {
 	bool success = false;
-	mongo_cursor_t* cursor = nullptr;
+	mongoc_cursor_t* cursor = nullptr;
 	bson_t* bsonQuery = nullptr;
 
 	do
@@ -207,7 +209,7 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 
 		FreeWinEntryList( winEntryList );
 
-		bsonQuery = json_as_bson( jsonQuery );
+		//bsonQuery = json_as_bson( jsonQuery );
 
 		cursor = mongoc_collection_find( win_collection, MONGOC_QUERY_NONE, 0, winEntryListSize, 0, bsonQuery, NULL, NULL );
 		if( !cursor )
@@ -226,7 +228,7 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 	while( false );
 
 	if( cursor )
-		mongo_cursor_destroy( cursor );
+		mongoc_cursor_destroy( cursor );
 
 	if( bsonQuery )
 		bson_free( bsonQuery );

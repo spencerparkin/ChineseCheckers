@@ -56,8 +56,8 @@
     </BuildLog>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../wxWidgets-3.0.2/include;../wxWidgets-3.0.2/include/msvc;C:\SDL2-2.0.4\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../wxWidgets-3.0.2/include;../wxWidgets-3.0.2/include/msvc;C:\SDL2-2.0.4\include;c:\mongolib\include\libbson-1.0;c:\mongolib\include\libmongoc-1.0;C:\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;_SSIZE_T_DEFINED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -69,9 +69,9 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>wxmsw30ud_core.lib;wxbase30ud.lib;wxmsw30ud_gl.lib;SDL2.lib;comctl32.lib;rpcrt4.lib;advapi32.lib;wsock32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxmsw30ud_core.lib;wxbase30ud.lib;wxmsw30ud_gl.lib;wxmsw30ud_adv.lib;SDL2.lib;comctl32.lib;rpcrt4.lib;advapi32.lib;wsock32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;opengl32.lib;glu32.lib;bson-static-1.0.lib;mongoc-static-1.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Build/$(Configuration)/$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>../wxWidgets-3.0.2/lib/vc_dll;C:\SDL2-2.0.4\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../wxWidgets-3.0.2/lib/vc_dll;C:\SDL2-2.0.4\lib\x86;c:\mongolib\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ManifestFile>Build/$(Configuration)/$(TargetFileName).intermediate.manifest</ManifestFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

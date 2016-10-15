@@ -3,9 +3,11 @@
 #pragma once
 
 #include <wx/datetime.h>
-#include <bson.h>
-#include <mongoc.h>
 #include <list>
+
+struct _bson_t;
+struct _mongoc_client_t;
+struct _mongoc_collection_t;
 
 namespace ChiChe
 {
@@ -45,11 +47,11 @@ public:
 
 private:
 
-	bool WinEntryToBson( const WinEntry& winEntry, bson_t*& bsonDoc );
-	bool WinEntryFromBson( WinEntry& winEntry, const bson_t* bsonDoc );
+	bool WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc );
+	bool WinEntryFromBson( WinEntry& winEntry, const _bson_t* bsonDoc );
 
-	mongoc_client_t* client;
-	mongoc_collection_t* win_collection;
+	_mongoc_client_t* client;
+	_mongoc_collection_t* win_collection;
 };
 
 // ChiCheMongo.h

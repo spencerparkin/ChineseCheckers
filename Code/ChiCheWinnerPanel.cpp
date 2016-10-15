@@ -75,7 +75,7 @@ bool WinnerPanel::ExecuteQuery( void )
 
 		if( !mongo->Connect() )
 		{
-			wxMessageBox( "Failed to connect to mongo database.", "Error", wxICON_ERROR | wxICON_CENTRE );
+			wxMessageBox( "Failed to connect to mongo database.", "Error", wxICON_ERROR | wxCENTRE );
 			break;
 		}
 
@@ -140,8 +140,8 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 //=====================================================================================
 /*virtual*/ wxDataViewItem WinnerPanel::WinEntryDataViewModel::GetParent( const wxDataViewItem& item ) const
 {
-	wxDataViewItem item;
-	return item;
+	wxDataViewItem parentItem;
+	return parentItem;
 }
 
 //=====================================================================================
@@ -177,7 +177,7 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 }
 
 //=====================================================================================
-/*virtual*/ bool WinnerPanel::WinEntryDataViewModel::SetValue( const wxVariant& variant, const wxDataViewItem& item, unsigned int col ) const
+/*virtual*/ bool WinnerPanel::WinEntryDataViewModel::SetValue( const wxVariant& variant, const wxDataViewItem& item, unsigned int col )
 {
 	return false;
 }
