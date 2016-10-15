@@ -5,10 +5,26 @@
 #include <rapidjson/writer.h>
 #include <wx/string.h>
 #include <wx/utils.h>
-#include <bson.h>
-#include <mongoc.h>
+#pragma warning( push )
+#pragma warning( disable : 4005 )		// Not sure how to fix this problem.
+#	include <bson.h>
+#	include <mongoc.h>
+#pragma warning( pop )
 
 using namespace ChiChe;
+
+//=====================================================================================
+_bson_t* json_as_bson( const char* jsonDoc )
+{
+	bson_t* bsonDoc = bson_new();
+	bson_error_t error;
+	if( !bson_init_from_json( bsonDoc, jsonDoc, strlen( jsonDoc ), &error ) )
+	{
+		bson_free( bsonDoc );
+		bsonDoc = nullptr;
+	}
+	return bsonDoc;
+}
 
 //=====================================================================================
 Mongo::Mongo( void )
@@ -88,20 +104,30 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc )
 		bsonDoc = nullptr;
 
 		rapidjson::Document doc;
-		//doc[ "winnerName" ].SetString( winEntry.winnerName );
-		//doc[ "score" ].SetLong( winEntry.score );
-		//doc[ "turnCount" ].SetInt( winEntry.turnCount );
-		//doc[ "dateOfWin" ].SetString( winEntry.dateOfWin.Format() );
+		doc.SetObject();
 
-		rapidjson::StringBuffer stringBuffer;
-		rapidjson::Writer< rapidjson::StringBuffer > writer( stringBuffer );
-		doc.Accept( writer );
+		const char* winnerName = winEntry.winnerName.c_str();
+		rapidjson::Value winnerNameValue;
+		winnerNameValue.SetString( winnerName, strlen( winnerName ), doc.GetAllocator() );
+		doc.AddMember( "winnerName", winnerNameValue, doc.GetAllocator() );
+		
+		doc.AddMember( "score", rapidjson::Value().SetInt64( winEntry.score ), doc.GetAllocator() );
+		doc.AddMember( "turnCount", winEntry.turnCount, doc.GetAllocator() );
 
-		const char* jsonDoc = stringBuffer.GetString();
+		const char* dateOfWin = winEntry.dateOfWin.Format();
+		rapidjson::Value dateOfWinValue;
+		dateOfWinValue.SetString( dateOfWin, strlen( dateOfWin ), doc.GetAllocator() );
+		doc.AddMember( "dateOfWin", dateOfWinValue, doc.GetAllocator() );
 
-		//bsonDoc = json_as_bson( jsonDoc, NULL );
-		//if( !bsonDoc )
-		//	break;
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer< rapidjson::StringBuffer > writer( buffer );
+		if( !doc.Accept( writer ) )
+			break;
+
+		const char* jsonDoc = buffer.GetString();
+		bsonDoc = json_as_bson( jsonDoc );
+		if( !bsonDoc )
+			break;
 
 		success = true;
 	}
@@ -121,11 +147,12 @@ bool Mongo::WinEntryFromBson( WinEntry& winEntry, const _bson_t* bsonDoc )
 		jsonDoc = bson_as_json( bsonDoc, NULL );
 
 		rapidjson::Document doc;
-		//if( !doc.Parse( jsonDoc ) )
-		//	break;
+		doc.Parse( jsonDoc );
+		if( !doc.IsObject() )
+			break;
 
 		winEntry.winnerName = doc[ "winnerName" ].GetString();
-		//winEntry.score = doc[ "score" ].GetLong();
+		winEntry.score = doc[ "score" ].GetInt64();
 		winEntry.turnCount = doc[ "turnCount" ].GetInt();
 		wxString dateOfWin = doc[ "dateOfWin" ].GetString();
 		winEntry.dateOfWin.ParseDateTime( dateOfWin );
