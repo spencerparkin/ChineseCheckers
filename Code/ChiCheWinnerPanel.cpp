@@ -30,11 +30,11 @@ WinnerPanel::WinnerPanel( void )
 {
 	queryComboBox = new wxComboBox( this, wxID_ANY );
 	maxResultsSpin = new wxSpinCtrl( this, wxID_ANY );
-	refreshButton = new wxButton( this, wxID_ANY, wxT( "Refresh" ), wxDefaultPosition, wxSize( 30, -1 ) );
+	refreshButton = new wxButton( this, wxID_ANY, wxT( "Refresh" ) );
 	wxBoxSizer* headerBoxSizer = new wxBoxSizer( wxHORIZONTAL );
-	headerBoxSizer->Add( queryComboBox, 1, wxGROW );
-	headerBoxSizer->Add( maxResultsSpin, 0, 0 );
-	headerBoxSizer->Add( refreshButton, 0, 0 );
+	headerBoxSizer->Add( queryComboBox, 1, wxGROW | wxALL, 4 );
+	headerBoxSizer->Add( maxResultsSpin, 0, wxALL, 4 );
+	headerBoxSizer->Add( refreshButton, 0, wxALL, 4 );
 
 	queryResultsView = new wxDataViewCtrl( this, wxID_ANY );
 	wxBoxSizer* boxSizer = new wxBoxSizer( wxVERTICAL );
