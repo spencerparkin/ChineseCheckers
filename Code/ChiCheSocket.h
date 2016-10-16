@@ -28,6 +28,19 @@ namespace ChiChe
 		{
 		public:
 
+			enum Type
+			{
+				ASSIGN_COLOR,
+				PARTICIPANTS,
+				GAME_MOVE,
+				GAME_STATE,
+				DROPPED_CLIENT,
+				SCORE_BONUS,
+				BEGIN_COMPUTER_THINKING,
+				UPDATE_COMPUTER_THINKING,
+				END_COMPUTER_THINKING,
+			};
+
 			Packet( void );
 			~Packet( void );
 

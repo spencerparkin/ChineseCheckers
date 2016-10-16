@@ -62,7 +62,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 
 	wxMenu* panelMenu = new wxMenu();
 	wxMenuItem* scorePanelMenuItem = new wxMenuItem( panelMenu, ID_ScorePanelToggle, wxT( "Score Panel" ), wxT( "Toggle the score panel." ), wxITEM_CHECK );
-	wxMenuItem* winnerPanelMenuItem = new wxMenuItem( panelMenu, ID_WinnerPanelToggle, wxT( "High Score Panel" ), wxT( "Toggle the high-score panel." ), wxITEM_CHECK );
+	wxMenuItem* winnerPanelMenuItem = new wxMenuItem( panelMenu, ID_WinnerPanelToggle, wxT( "Winner Panel" ), wxT( "Toggle the winner panel." ), wxITEM_CHECK );
 	wxMenuItem* chatMenuItem = new wxMenuItem( panelMenu, ID_ChatPanelToggle, wxT( "Chat Panel" ), wxT( "Toggle the chat panel" ), wxITEM_CHECK );
 	panelMenu->Append( scorePanelMenuItem );
 	panelMenu->Append( winnerPanelMenuItem );

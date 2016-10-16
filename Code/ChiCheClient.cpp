@@ -80,14 +80,14 @@ bool Client::Run( void )
 	{
 		switch( inPacket.GetType() )
 		{
-			case Server::GAME_STATE:
+			case Socket::Packet::GAME_STATE:
 			{
 				if( !board || !board->SetGameState( inPacket ) )
 					return false;
 				TellUserWhosTurnItIs();
 				break;
 			}
-			case Server::GAME_MOVE:
+			case Socket::Packet::GAME_MOVE:
 			{
 				wxInt32 sourceID, destinationID;
 				if( board->UnpackMove( inPacket, sourceID, destinationID ) )
@@ -95,7 +95,7 @@ bool Client::Run( void )
 					Board::MoveSequence moveSequence;
 					if( !board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
 						return false;
-					if( !board->ApplyMoveSequence( moveSequence ) )
+					if( !board->ApplyMoveSequence( moveSequence, true ) )
 						return false;
 					TellUserWhosTurnItIs();
 					int winner = board->DetermineWinner();
@@ -127,7 +127,7 @@ bool Client::Run( void )
 				}
 				break;
 			}
-			case Server::SCORE_BONUS:
+			case Socket::Packet::SCORE_BONUS:
 			{
 				wxInt32 participant;
 				wxInt64 scoreBonus;
@@ -137,7 +137,7 @@ bool Client::Run( void )
 
 				break;
 			}
-			case Server::ASSIGN_COLOR:
+			case Socket::Packet::ASSIGN_COLOR:
 			{
 				wxInt32 data = *( wxInt32* )inPacket.GetData();
 				if( inPacket.ByteSwap() )
@@ -145,7 +145,7 @@ bool Client::Run( void )
 				color = data;
 				break;
 			}
-			case Server::PARTICIPANTS:
+			case Socket::Packet::PARTICIPANTS:
 			{
 				if( board )
 					return false;
@@ -160,7 +160,7 @@ bool Client::Run( void )
 				Bind( Board::END_BOARD_THINKING, &Client::OnBoardThinking, this );
 				break;
 			}
-			case Server::DROPPED_CLIENT:
+			case Socket::Packet::DROPPED_CLIENT:
 			{
 				wxInt32 color = *( wxInt32* )inPacket.GetData();
 				if( inPacket.ByteSwap() )
@@ -171,9 +171,9 @@ bool Client::Run( void )
 				wxMessageBox( message, wxT( "Dropped Client" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
 				break;
 			}
-			case Server::BEGIN_COMPUTER_THINKING:
-			case Server::UPDATE_COMPUTER_THINKING:
-			case Server::END_COMPUTER_THINKING:
+			case Socket::Packet::BEGIN_COMPUTER_THINKING:
+			case Socket::Packet::UPDATE_COMPUTER_THINKING:
+			case Socket::Packet::END_COMPUTER_THINKING:
 			{
 				UpdateThinkingStatus( inPacket );
 				break;
@@ -220,7 +220,7 @@ bool Client::Run( void )
 		
 		// Submit our move!
 		Socket::Packet outPacket;
-		Board::PackMove( outPacket, move.sourceID, move.destinationID, GAME_MOVE );
+		Board::PackMove( outPacket, move.sourceID, move.destinationID );
 		socket->WritePacket( outPacket );
 		movePacketSent = true;
 		break;
@@ -235,11 +235,11 @@ void Client::OnBoardThinking( Board::Event& event )
 	Socket::Packet outPacket;
 
 	if( event.GetEventType() == Board::BEGIN_BOARD_THINKING )
-		outPacket.SetType( BEGIN_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::BEGIN_COMPUTER_THINKING );
 	else if( event.GetEventType() == Board::UPDATE_BOARD_THINKING )
-		outPacket.SetType( UPDATE_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::UPDATE_COMPUTER_THINKING );
 	else if( event.GetEventType() == Board::END_BOARD_THINKING )
-		outPacket.SetType( END_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::END_COMPUTER_THINKING );
 
 	wxString message = event.GetMessage();
 	size_t size = message.Length() + 1;
@@ -267,20 +267,17 @@ void Client::UpdateThinkingStatus( const Socket::Packet& packet )
 	wxString message = wxString( ( const char* )packet.GetData() );
 	switch( packet.GetType() )
 	{
-		case Client::BEGIN_COMPUTER_THINKING:
-		case Server::BEGIN_COMPUTER_THINKING:
+		case Socket::Packet::BEGIN_COMPUTER_THINKING:
 		{
 			statusBar->PushStatusText( message );
 			break;
 		}
-		case Client::UPDATE_COMPUTER_THINKING:
-		case Server::UPDATE_COMPUTER_THINKING:
+		case Socket::Packet::UPDATE_COMPUTER_THINKING:
 		{
 			statusBar->SetStatusText( message );
 			break;
 		}
-		case Client::END_COMPUTER_THINKING:
-		case Server::END_COMPUTER_THINKING:
+		case Socket::Packet::END_COMPUTER_THINKING:
 		{
 			statusBar->PopStatusText();
 			break;
@@ -306,7 +303,7 @@ bool Client::ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hit
 			if( board->FindMoveSequence( selectedLocationID, locationID, moveSequence ) )
 			{
 				Socket::Packet outPacket;
-				Board::PackMove( outPacket, selectedLocationID, locationID, GAME_MOVE );
+				Board::PackMove( outPacket, selectedLocationID, locationID );
 				socket->WritePacket( outPacket );
 			}
 		}

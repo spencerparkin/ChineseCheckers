@@ -152,7 +152,7 @@ int Board::GetTurnCount( int participant )
 //=====================================================================================
 /*static*/ bool Board::UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID )
 {
-	if( inPacket.GetType() != Client::GAME_MOVE && inPacket.GetType() != Server::GAME_MOVE )
+	if( inPacket.GetType() != Socket::Packet::GAME_MOVE )
 		return false;
 		
 	if( inPacket.GetSize() != 2 * sizeof( wxInt32 ) )
@@ -174,18 +174,15 @@ int Board::GetTurnCount( int participant )
 }
 
 //=====================================================================================
-/*static*/ bool Board::PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType )
+/*static*/ bool Board::PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID )
 {
 	outPacket.Reset();
-
-	if( packetType != Client::GAME_MOVE && packetType != Server::GAME_MOVE )
-		return false;
 
 	wxInt32* data = new wxInt32[2];
 	data[0] = sourceID;
 	data[1] = destinationID;
 
-	outPacket.SetType( packetType );
+	outPacket.SetType( Socket::Packet::GAME_MOVE );
 	outPacket.SetData( ( wxInt8* )data );
 	outPacket.SetSize( sizeof( wxInt32 ) * 2 );
 	outPacket.OwnsMemory( true );
@@ -196,7 +193,7 @@ int Board::GetTurnCount( int participant )
 //=====================================================================================
 /*static*/ bool Board::UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus )
 {
-	if( inPacket.GetType() != Client::SCORE_BONUS || inPacket.GetType() != Server::SCORE_BONUS )
+	if( inPacket.GetType() != Socket::Packet::SCORE_BONUS )
 		return false;
 
 	if( inPacket.GetSize() != 2 * sizeof( wxInt64 ) )
@@ -224,7 +221,7 @@ int Board::GetTurnCount( int participant )
 	data[0] = participant;
 	data[1] = scoreBonus;
 
-	outPacket.SetType( Client::SCORE_BONUS );
+	outPacket.SetType( Socket::Packet::SCORE_BONUS );
 	outPacket.SetData( ( wxInt8* )data );
 	outPacket.SetSize( sizeof( wxInt64 ) * 2 );
 	outPacket.OwnsMemory( true );
@@ -406,7 +403,7 @@ bool Board::GetGameState( Socket::Packet& outPacket )
 
 	locationDataArray[ size - 1 ] = whosTurn;
 
-	outPacket.SetType( Server::GAME_STATE );
+	outPacket.SetType( Socket::Packet::GAME_STATE );
 	outPacket.SetData( ( wxInt8* )locationDataArray );
 	outPacket.SetSize( size * sizeof( wxInt32 ) );
 	outPacket.OwnsMemory( true );
@@ -417,7 +414,7 @@ bool Board::GetGameState( Socket::Packet& outPacket )
 //=====================================================================================
 bool Board::SetGameState( const Socket::Packet& inPacket )
 {
-	if( inPacket.GetType() != Server::GAME_STATE )
+	if( inPacket.GetType() != Socket::Packet::GAME_STATE )
 		return false;
 
 	wxInt32 size = locationMap.size() * 2 + 1;
@@ -802,7 +799,7 @@ void Board::Move::Inverse( Move& inverseMove ) const
 // Here we assume that the given move sequence is valid.  Notice that here
 // we advance who's turn it is.  This is, by definition, part of the application
 // of a given move sequence.
-bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
+bool Board::ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonuses )
 {
 	int sourceID = *moveSequence.begin();
 	int destinationID = moveSequence.back();
@@ -821,29 +818,33 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 	if( piece )
 		piece->ResetAnimation( moveSequence );
 
-	if( wxGetApp().GetClient()->GetColor() == whosTurn )
+	if( applyBonuses )
 	{
-		long scoreBonus = 0;
-
-		// Bonus points if you can hop all the way from your home-zone to the target-zone!!
-		if( sourceLocation->GetZone() == whosTurn && destinationLocation->GetZone() == ZoneTarget( whosTurn ) )
-			scoreBonus += 100;
-
-		// Bonus points for every foreign zone you touch!
-		for( MoveSequence::const_iterator iter = moveSequence.cbegin(); iter != moveSequence.cend(); iter++ )
+		Client* client = wxGetApp().GetClient();
+		if( client && client->GetColor() == whosTurn )
 		{
-			int locationID = *iter;
-			Location* location = locationMap[ locationID ];
-			if( location->GetZone() != NONE )
-				if( location->GetZone() != whosTurn && location->GetZone() != ZoneTarget( whosTurn ) )
-					scoreBonus += 50;
-		}
+			long scoreBonus = 0;
 
-		if( scoreBonus > 0 )
-		{
-			Socket::Packet outPacket;
-			PackScoreBonus( outPacket, whosTurn, scoreBonus );
-			wxGetApp().GetClient()->GetSocket()->WritePacket( outPacket );
+			// Bonus points if you can hop all the way from your home-zone to the target-zone!!
+			if( sourceLocation->GetZone() == whosTurn && destinationLocation->GetZone() == ZoneTarget( whosTurn ) )
+				scoreBonus += 100;
+
+			// Bonus points for every foreign zone you touch!
+			for( MoveSequence::const_iterator iter = moveSequence.cbegin(); iter != moveSequence.cend(); iter++ )
+			{
+				int locationID = *iter;
+				Location* location = locationMap[ locationID ];
+				if( location->GetZone() != NONE )
+					if( location->GetZone() != whosTurn && location->GetZone() != ZoneTarget( whosTurn ) )
+						scoreBonus += 50;
+			}
+
+			if( scoreBonus > 0 )
+			{
+				Socket::Packet outPacket;
+				PackScoreBonus( outPacket, whosTurn, scoreBonus );
+				wxGetApp().GetClient()->GetSocket()->WritePacket( outPacket );
+			}
 		}
 	}
 

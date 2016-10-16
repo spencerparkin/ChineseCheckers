@@ -107,7 +107,7 @@ namespace ChiChe
 		static bool UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID );
 
 		// Put a game move into the given packet.
-		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType );
+		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID );
 
 		// Pack and unpack score bonuses!
 		static bool UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus );
@@ -158,7 +158,7 @@ namespace ChiChe
 		bool FindMoveSequence( const Move& move, MoveSequence& moveSequence );
 
 		// Change the state of the game board by the given move sequence.  This will also change who's turn it is.
-		bool ApplyMoveSequence( const MoveSequence& moveSequence );
+		bool ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonuses );
 
 		// Get bonus points to the given participant!
 		bool ApplyScoreBonus( int participant, long scoreBonus );

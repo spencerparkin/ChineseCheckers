@@ -15,15 +15,6 @@ namespace ChiChe
 	{
 	public:
 
-		enum PacketType
-		{
-			GAME_MOVE,
-			SCORE_BONUS,
-			BEGIN_COMPUTER_THINKING,
-			UPDATE_COMPUTER_THINKING,
-			END_COMPUTER_THINKING,
-		};
-
 		enum Type
 		{
 			HUMAN,

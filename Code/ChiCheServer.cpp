@@ -67,7 +67,7 @@ bool Server::Run( void )
 
 		Socket::Packet outPacket;
 
-		outPacket.SetType( ASSIGN_COLOR );
+		outPacket.SetType( Socket::Packet::ASSIGN_COLOR );
 		outPacket.SetData( ( wxInt8* )&color );
 		outPacket.SetSize( sizeof( int ) );
 		outPacket.OwnsMemory( false );
@@ -75,7 +75,7 @@ bool Server::Run( void )
 
 		int participants = board->GetParticipants();
 		outPacket.Reset();
-		outPacket.SetType( PARTICIPANTS );
+		outPacket.SetType( Socket::Packet::PARTICIPANTS );
 		outPacket.SetData( ( wxInt8* )&participants );
 		outPacket.SetSize( sizeof( int ) );
 		outPacket.OwnsMemory( false );
@@ -99,7 +99,7 @@ bool Server::Run( void )
 			participantList.erase( eraseIter );
 
 			Socket::Packet outPacket;
-			outPacket.SetType( DROPPED_CLIENT );
+			outPacket.SetType( Socket::Packet::DROPPED_CLIENT );
 			outPacket.SetData( ( wxInt8* )&color );
 			outPacket.SetSize( sizeof( wxInt32 ) );
 			outPacket.OwnsMemory( false );
@@ -121,7 +121,7 @@ bool Server::ServiceClient( Participant* participant )
 	{
 		switch( inPacket.GetType() )
 		{
-			case Client::GAME_MOVE:
+			case Socket::Packet::GAME_MOVE:
 			{
 				// Don't let clients make moves if someone has one the game.
 				if( Board::NONE != board->DetermineWinner() )
@@ -142,16 +142,16 @@ bool Server::ServiceClient( Participant* participant )
 					break;
 				
 				// Perform the move sequence on the master board.
-				if( !board->ApplyMoveSequence( moveSequence ) )
+				if( !board->ApplyMoveSequence( moveSequence, false ) )
 					break;
 				
 				// Now go have all the clients make the same move to keep all boards in sync.
 				Socket::Packet outPacket;
-				Board::PackMove( outPacket, sourceID, destinationID, GAME_MOVE );
+				Board::PackMove( outPacket, sourceID, destinationID );
 				BroadcastPacket( outPacket );
 				break;
 			}
-			case Client::SCORE_BONUS:
+			case Socket::Packet::SCORE_BONUS:
 			{
 				wxInt32 participant;
 				wxInt64 scoreBonus;
@@ -166,17 +166,17 @@ bool Server::ServiceClient( Participant* participant )
 
 				break;
 			}
-			case Client::BEGIN_COMPUTER_THINKING:
-			case Client::UPDATE_COMPUTER_THINKING:
-			case Client::END_COMPUTER_THINKING:
+			case Socket::Packet::BEGIN_COMPUTER_THINKING:
+			case Socket::Packet::UPDATE_COMPUTER_THINKING:
+			case Socket::Packet::END_COMPUTER_THINKING:
 			{
 				wxInt32 type;
-				if( inPacket.GetType() == Client::BEGIN_COMPUTER_THINKING )
-					type = BEGIN_COMPUTER_THINKING;
-				else if( inPacket.GetType() == Client::UPDATE_COMPUTER_THINKING )
-					type = UPDATE_COMPUTER_THINKING;
-				else if( inPacket.GetType() == Client::END_COMPUTER_THINKING )
-					type = END_COMPUTER_THINKING;
+				if( inPacket.GetType() == Socket::Packet::BEGIN_COMPUTER_THINKING )
+					type = Socket::Packet::BEGIN_COMPUTER_THINKING;
+				else if( inPacket.GetType() == Socket::Packet::UPDATE_COMPUTER_THINKING )
+					type = Socket::Packet::UPDATE_COMPUTER_THINKING;
+				else if( inPacket.GetType() == Socket::Packet::END_COMPUTER_THINKING )
+					type = Socket::Packet::END_COMPUTER_THINKING;
 
 				// Broad-cast the messate to all but the sender, because
 				// the sender is too busy to receive the message.
