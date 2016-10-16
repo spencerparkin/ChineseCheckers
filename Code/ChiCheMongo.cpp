@@ -241,6 +241,8 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 	mongoc_cursor_t* cursor = nullptr;
 	bson_t* bsonQuery = nullptr;
 
+	// TODO: Should we use a progress dialog here in case it takes a bit of time?
+
 	do
 	{
 		wxBusyCursor busyCursor;

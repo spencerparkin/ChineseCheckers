@@ -107,7 +107,7 @@ bool Client::Run( void )
 							Board::ParticipantText( winner, winnerText );
 							wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
 						}
-						else
+						else if( type == HUMAN )
 						{
 							if( wxYES == wxMessageBox( wxT( "You won!  Would you like to record your score in the database?" ), wxT( "You win!" ), wxYES_NO | wxCENTRE, wxGetApp().GetFrame() ) )
 							{
