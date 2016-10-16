@@ -101,7 +101,7 @@ bool Client::Run( void )
 					int winner = board->DetermineWinner();
 					if( winner != Board::NONE )
 					{
-						if( color != winner )
+						if( color != winner || type == COMPUTER )
 						{
 							wxString winnerText;
 							Board::ParticipantText( winner, winnerText );

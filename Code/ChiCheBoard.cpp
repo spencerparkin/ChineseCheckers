@@ -825,9 +825,8 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonus
 		{
 			long scoreBonus = 0;
 
-			// Bonus points if you can hop all the way from your home-zone to the target-zone!!
-			if( sourceLocation->GetZone() == whosTurn && destinationLocation->GetZone() == ZoneTarget( whosTurn ) )
-				scoreBonus += 100;
+			bool hitHomeZone = false;
+			bool hitTargetZone = false;
 
 			// Bonus points for every foreign zone you touch!
 			for( MoveSequence::const_iterator iter = moveSequence.cbegin(); iter != moveSequence.cend(); iter++ )
@@ -835,9 +834,20 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonus
 				int locationID = *iter;
 				Location* location = locationMap[ locationID ];
 				if( location->GetZone() != NONE )
+				{
 					if( location->GetZone() != whosTurn && location->GetZone() != ZoneTarget( whosTurn ) )
-						scoreBonus += 50;
+						if( iter != moveSequence.cbegin() )
+							scoreBonus += 100;
+					if( location->GetZone() == whosTurn )
+						hitHomeZone = true;
+					if( location->GetZone() == ZoneTarget( whosTurn ) )
+						hitTargetZone = true;
+				}
 			}
+
+			// Bonus points if you can hop all the way from your home-zone to the target-zone!!
+			if( hitHomeZone && hitTargetZone )
+				scoreBonus += 500;
 
 			if( scoreBonus > 0 )
 			{
@@ -1075,7 +1085,9 @@ void Board::AccumulateScoreForMove( const Move& move, int participant, int jumpC
 	{
 		jumpScore = 2;
 
-		wxASSERT( mutualAdjacency->GetOccupant() != NONE );
+		// This can actually happen during game-play, because another computer player
+		// may take it's turn before the previous player's move is finished animating.
+		//wxASSERT( mutualAdjacency->GetOccupant() != NONE );
 
 		// If you jump someone else's marble, you get extra points!
 		if( mutualAdjacency->GetOccupant() != participant )
