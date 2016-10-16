@@ -50,6 +50,7 @@ namespace ChiChe
 		void BroadcastPacket( Socket::Packet& outPacket, Participant* excludedParticipant = 0 );
 
 		Board* board;
+		bool gameOver;
 		wxSocketServer* socketServer;
 		ParticipantList participantList;
 	};

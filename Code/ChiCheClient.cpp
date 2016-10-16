@@ -22,6 +22,7 @@ Client::Client( Type type )
 	color = Board::NONE;
 	selectedLocationID = -1;
 	movePacketSent = false;
+	gameOver = false;
 	brain = nullptr;
 	if( type == COMPUTER )
 		brain = new Brain();
@@ -97,33 +98,7 @@ bool Client::Run( void )
 						return false;
 					if( !board->ApplyMoveSequence( moveSequence, true ) )
 						return false;
-					TellUserWhosTurnItIs();
-					int winner = board->DetermineWinner();
-					if( winner != Board::NONE )
-					{
-						if( color != winner || type == COMPUTER )
-						{
-							wxString winnerText;
-							Board::ParticipantText( winner, winnerText );
-							wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
-						}
-						else if( type == HUMAN )
-						{
-							if( wxYES == wxMessageBox( wxT( "You won!  Would you like to record your score in the database?" ), wxT( "You win!" ), wxYES_NO | wxCENTRE, wxGetApp().GetFrame() ) )
-							{
-								Mongo::WinEntry winEntry;
-								winEntry.dateOfWin.SetToCurrent();
-								winEntry.turnCount = board->GetTurnCount( color );
-								board->GetScore( color, winEntry.score );
-								winEntry.winnerName = wxGetTextFromUser( "Please enter your name for the record.", "Name Entry", wxEmptyString, wxGetApp().GetFrame() );
-								
-								Mongo* mongo = new Mongo();
-								if( !mongo->Connect() || !mongo->InsertWinEntry( winEntry ) )
-									wxMessageBox( wxT( "Database communication failed." ), wxT( "Error" ), wxICON_ERROR | wxCENTRE, wxGetApp().GetFrame() );
-								delete mongo;
-							}
-						}
-					}
+					TellUserWhosTurnItIs();	
 				}
 				break;
 			}
@@ -224,6 +199,39 @@ bool Client::Run( void )
 		socket->WritePacket( outPacket );
 		movePacketSent = true;
 		break;
+	}
+
+	// Gather final points during animation before declaring the winner, if any.
+	if( board && !board->AnyPieceInMotion() && !gameOver )
+	{
+		int winner = board->DetermineWinner();
+		if( winner != Board::NONE )
+		{
+			gameOver = true;
+
+			if( color != winner )
+			{
+				wxString winnerText;
+				Board::ParticipantText( winner, winnerText );
+				wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+			}
+			else if( type == COMPUTER || wxYES == wxMessageBox( wxT( "You won!  Would you like to record your score in the database?" ), wxT( "You win!" ), wxYES_NO | wxCENTRE, wxGetApp().GetFrame() ) )
+			{
+				Mongo::WinEntry winEntry;
+				winEntry.dateOfWin.SetToCurrent();
+				winEntry.turnCount = board->GetTurnCount( color );
+				board->GetScore( color, winEntry.score );
+				if( type == HUMAN )
+					winEntry.winnerName = wxGetTextFromUser( "Please enter your name for the record.", "Name Entry", wxEmptyString, wxGetApp().GetFrame() );
+				else
+					winEntry.winnerName = "Chinese Checkers AI";
+
+				Mongo* mongo = new Mongo();
+				if( !mongo->Connect() || !mongo->InsertWinEntry( winEntry ) )
+					wxMessageBox( wxT( "Database communication failed." ), wxT( "Error" ), wxICON_ERROR | wxCENTRE, wxGetApp().GetFrame() );
+				delete mongo;
+			}
+		}
 	}
 
 	return true;

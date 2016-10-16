@@ -11,6 +11,7 @@ Server::Server( int participants )
 {
 	socketServer = 0;
 	board = new Board( participants, false );
+	gameOver = false;
 }
 
 //=====================================================================================
@@ -56,33 +57,35 @@ bool Server::Finalize( void )
 //=====================================================================================
 bool Server::Run( void )
 {
-	// Listen for incoming client connections.  Since we always accept a
-	// connection, this makes us more suspectable to a denial of service attack.
-	wxSocketBase* connectedSocket = socketServer->Accept( false );
-	if( connectedSocket )
+	// Listen for incoming client connections unless the game is over.
+	if( !gameOver )
 	{
-		int color = AssignColorToNewParticipant();
-		Participant* participant = new Participant( connectedSocket, color );
-		participantList.push_back( participant );
+		wxSocketBase* connectedSocket = socketServer->Accept( false );
+		if( connectedSocket )
+		{
+			int color = AssignColorToNewParticipant();
+			Participant* participant = new Participant( connectedSocket, color );
+			participantList.push_back( participant );
 
-		Socket::Packet outPacket;
+			Socket::Packet outPacket;
 
-		outPacket.SetType( Socket::Packet::ASSIGN_COLOR );
-		outPacket.SetData( ( wxInt8* )&color );
-		outPacket.SetSize( sizeof( int ) );
-		outPacket.OwnsMemory( false );
-		participant->socket->WritePacket( outPacket );
+			outPacket.SetType( Socket::Packet::ASSIGN_COLOR );
+			outPacket.SetData( ( wxInt8* )&color );
+			outPacket.SetSize( sizeof( int ) );
+			outPacket.OwnsMemory( false );
+			participant->socket->WritePacket( outPacket );
 
-		int participants = board->GetParticipants();
-		outPacket.Reset();
-		outPacket.SetType( Socket::Packet::PARTICIPANTS );
-		outPacket.SetData( ( wxInt8* )&participants );
-		outPacket.SetSize( sizeof( int ) );
-		outPacket.OwnsMemory( false );
-		participant->socket->WritePacket( outPacket );
+			int participants = board->GetParticipants();
+			outPacket.Reset();
+			outPacket.SetType( Socket::Packet::PARTICIPANTS );
+			outPacket.SetData( ( wxInt8* )&participants );
+			outPacket.SetSize( sizeof( int ) );
+			outPacket.OwnsMemory( false );
+			participant->socket->WritePacket( outPacket );
 
-		board->GetGameState( outPacket );
-		participant->socket->WritePacket( outPacket );
+			board->GetGameState( outPacket );
+			participant->socket->WritePacket( outPacket );
+		}
 	}
 
 	// Continually service all connected clients.
@@ -149,6 +152,11 @@ bool Server::ServiceClient( Participant* participant )
 				Socket::Packet outPacket;
 				Board::PackMove( outPacket, sourceID, destinationID );
 				BroadcastPacket( outPacket );
+
+				// If the game is over, we're done.
+				if( board->DetermineWinner() != Board::NONE )
+					gameOver = true;
+
 				break;
 			}
 			case Socket::Packet::SCORE_BONUS:
