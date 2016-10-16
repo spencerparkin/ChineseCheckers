@@ -14,13 +14,12 @@
 using namespace ChiChe;
 
 //=====================================================================================
-_bson_t* json_as_bson( const char* jsonDoc )
+_bson_t* json_as_bson( const char* jsonDoc, bson_error_t* error )
 {
 	bson_t* bsonDoc = bson_new();
-	bson_error_t error;
-	if( !bson_init_from_json( bsonDoc, jsonDoc, strlen( jsonDoc ), &error ) )
+	if( !bson_init_from_json( bsonDoc, jsonDoc, strlen( jsonDoc ), error ) )
 	{
-		bson_free( bsonDoc );
+		bson_destroy( bsonDoc );
 		bsonDoc = nullptr;
 	}
 	return bsonDoc;
@@ -31,12 +30,15 @@ Mongo::Mongo( void )
 {
 	client = nullptr;
 	win_collection = nullptr;
+	error = new bson_error_t;
 }
 
 //=====================================================================================
 /*virtual*/ Mongo::~Mongo( void )
 {
 	Disconnect();
+
+	delete error;
 }
 
 //=====================================================================================
@@ -54,6 +56,12 @@ Mongo::Mongo( void )
 }
 
 //=====================================================================================
+wxString Mongo::GetError( void )
+{
+	return error->message;
+}
+
+//=====================================================================================
 bool Mongo::Connect( void )
 {
 	if( client )
@@ -63,7 +71,7 @@ bool Mongo::Connect( void )
 	// I'll have to revisit this code and switch over to a better authentication mechanism.
 	wxString userName = "chiche";
 	wxString passWord = "chiche";
-	wxString uri = "mongodb://" + userName + ":" + passWord + "@ds057066.mlab.com/57066/chiche";
+	wxString uri = "mongodb://" + userName + ":" + passWord + "@ds057066.mlab.com:57066/chiche";
 
 	client = mongoc_client_new( uri );
 	if( !client )
@@ -114,9 +122,11 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc )
 		doc.AddMember( "score", rapidjson::Value().SetInt64( winEntry.score ), doc.GetAllocator() );
 		doc.AddMember( "turnCount", winEntry.turnCount, doc.GetAllocator() );
 
-		const char* dateOfWin = winEntry.dateOfWin.Format();
+		int64_t time_seconds = winEntry.dateOfWin.GetTimeNow();
+		int64_t time_milliseconds = time_seconds * 1000;
 		rapidjson::Value dateOfWinValue;
-		dateOfWinValue.SetString( dateOfWin, strlen( dateOfWin ), doc.GetAllocator() );
+		dateOfWinValue.SetObject();
+		dateOfWinValue.AddMember( "$date", time_milliseconds, doc.GetAllocator() );
 		doc.AddMember( "dateOfWin", dateOfWinValue, doc.GetAllocator() );
 
 		rapidjson::StringBuffer buffer;
@@ -125,7 +135,7 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc )
 			break;
 
 		const char* jsonDoc = buffer.GetString();
-		bsonDoc = json_as_bson( jsonDoc );
+		bsonDoc = json_as_bson( jsonDoc, error );
 		if( !bsonDoc )
 			break;
 
@@ -154,8 +164,9 @@ bool Mongo::WinEntryFromBson( WinEntry& winEntry, const _bson_t* bsonDoc )
 		winEntry.winnerName = doc[ "winnerName" ].GetString();
 		winEntry.score = doc[ "score" ].GetInt64();
 		winEntry.turnCount = doc[ "turnCount" ].GetInt();
-		wxString dateOfWin = doc[ "dateOfWin" ].GetString();
-		winEntry.dateOfWin.ParseDateTime( dateOfWin );
+		int64_t time_milliseconds = doc[ "dateOfWin" ][ "$date" ].GetInt64();
+		int64_t time_seconds = time_milliseconds / 1000;
+		winEntry.dateOfWin.Set( time_seconds );
 
 		success = true;
 	}
@@ -190,7 +201,7 @@ bool Mongo::InsertWinEntry( const WinEntry& winEntry )
 	while( false );
 
 	if( bsonDoc )
-		bson_free( bsonDoc );
+		bson_destroy( bsonDoc );
 
 	return success;
 }
@@ -212,14 +223,14 @@ bool Mongo::InsertWinEntry( const WinEntry& winEntry )
 //=====================================================================================
 bool Mongo::GetTopHighScoresList( WinEntryList& winEntryList, int winEntryListSize )
 {
-	wxString jsonQuery = "{ \"$query\" : { \"$sort\" : { \"score\" : 1 } } }";
+	wxString jsonQuery = "{ \"$query\" : {}, \"$sort\" : { \"score\" : -1 } }";
 	return GetWinEntryList( winEntryList, winEntryListSize, jsonQuery );
 }
 
 //=====================================================================================
 bool Mongo::GetFastestWinList( WinEntryList& winEntryList, int winEntryListSize )
 {
-	wxString jsonQuery = "{ \"$query\" : { \"$sort\" : { \"turnCount\" : -1 } } }";
+	wxString jsonQuery = "{ \"$query\" : {}, \"$sort\" : { \"turnCount\" : 1 } }";
 	return GetWinEntryList( winEntryList, winEntryListSize, jsonQuery );
 }
 
@@ -236,7 +247,7 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 
 		FreeWinEntryList( winEntryList );
 
-		bsonQuery = json_as_bson( jsonQuery );
+		bsonQuery = json_as_bson( jsonQuery, error );
 		if( !bsonQuery )
 			break;
 
@@ -252,6 +263,9 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 				winEntryList.push_back( winEntry );
 		}
 
+		if( mongoc_cursor_error( cursor, error ) )
+			break;
+
 		success = true;
 	}
 	while( false );
@@ -260,9 +274,9 @@ bool Mongo::GetWinEntryList( WinEntryList& winEntryList, int winEntryListSize, c
 		mongoc_cursor_destroy( cursor );
 
 	if( bsonQuery )
-		bson_free( bsonQuery );
+		bson_destroy( bsonQuery );
 
-	return true;
+	return success;
 }
 
 // ChiCheMongo.cpp

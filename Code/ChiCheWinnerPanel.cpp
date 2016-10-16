@@ -51,6 +51,7 @@ WinnerPanel::WinnerPanel( void )
 
 	queryComboBox->Insert( "High Scores", 0 );
 	queryComboBox->Insert( "Fastest Wins", 1 );
+	queryComboBox->SetValue( "High Scores" );
 
 	refreshButton->Bind( wxEVT_BUTTON, &WinnerPanel::OnRefreshButtonPressed, this );
 	queryComboBox->Bind( wxEVT_COMBOBOX, &WinnerPanel::OnComboBoxSelectionChanged, this );
@@ -112,12 +113,14 @@ bool WinnerPanel::ExecuteQuery( void )
 void WinnerPanel::OnRefreshButtonPressed( wxCommandEvent& event )
 {
 	ExecuteQuery();
+	Update();
 }
 
 //=====================================================================================
 void WinnerPanel::OnComboBoxSelectionChanged( wxCommandEvent& event )
 {
 	ExecuteQuery();
+	Update();
 }
 
 //=====================================================================================
