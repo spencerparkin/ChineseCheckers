@@ -22,6 +22,7 @@ Client::Client( Type type )
 	color = Board::NONE;
 	selectedLocationID = -1;
 	movePacketSent = false;
+	boardStateReceived = false;
 	gameOver = false;
 	brain = nullptr;
 	if( type == COMPUTER )
@@ -85,6 +86,7 @@ bool Client::Run( void )
 			{
 				if( !board || !board->SetGameState( inPacket ) )
 					return false;
+				boardStateReceived = true;
 				TellUserWhosTurnItIs();
 				break;
 			}
@@ -160,7 +162,7 @@ bool Client::Run( void )
 	while( type == COMPUTER )
 	{
 		// There's nothing for us to do until the board is created, and we have to have a brain.
-		if( !board || !brain )
+		if( !board || !brain || !boardStateReceived )
 			break;
 
 		// Wait until it's our turn.

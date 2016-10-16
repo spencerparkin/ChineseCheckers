@@ -48,6 +48,7 @@ namespace ChiChe
 		int selectedLocationID;
 		bool movePacketSent;
 		bool gameOver;
+		bool boardStateReceived;
 		Brain* brain;
 	};
 }
