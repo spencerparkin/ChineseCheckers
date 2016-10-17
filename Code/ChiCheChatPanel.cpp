@@ -77,9 +77,9 @@ void ChatPanel::ReceiveChatMessage( const wxString& message, int color )
 	c3ga::vectorE3GA renderColor;
 	Board::RenderColor( color, renderColor );
 
-	unsigned char r = unsigned char( renderColor.get_e1() * 255.0 );
-	unsigned char g = unsigned char( renderColor.get_e2() * 255.0 );
-	unsigned char b = unsigned char( renderColor.get_e3() * 255.0 );
+	unsigned char r = ( unsigned char )( renderColor.get_e1() * 255.0 );
+	unsigned char g = ( unsigned char )( renderColor.get_e2() * 255.0 );
+	unsigned char b = ( unsigned char )( renderColor.get_e3() * 255.0 );
 	wxColour textRenderColor( r, g, b );
 
 	wxString textColor;

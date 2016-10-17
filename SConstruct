@@ -30,7 +30,7 @@ for source_file in cpp_source_list:
   object_file = obj_env.StaticObject( source_file )
   object_list.append( object_file )
 
-prog_env = Environment( PROGNAME = 'ChineseCheckers', parse_flags = '!wx-config --libs core base adv net gl aui' )
+prog_env = Environment( PROGNAME = 'ChineseCheckers', parse_flags = '!wx-config --libs core base adv net gl aui richtext' )
 prog_env.Append( LIBS = '-lGL' )
 prog_env.Append( LIBS = '-lGLU' )
 prog_env.Append( LIBS = '-lSDL2' )

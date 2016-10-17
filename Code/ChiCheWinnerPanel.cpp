@@ -115,6 +115,13 @@ bool WinnerPanel::ExecuteQuery( void )
 	}
 	while( false );
 
+	if( !success )
+	{
+		wxString error = mongo->GetError();
+		if( error.Length() > 0 )
+			wxMessageBox( "Mongo Error: " + error, "Error", wxICON_ERROR | wxCENTRE );
+	}
+	
 	delete mongo;
 
 	return success;
