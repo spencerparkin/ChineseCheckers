@@ -3,6 +3,7 @@
 #include "ChiCheWinnerPanel.h"
 #include <wx/sizer.h>
 #include <wx/msgdlg.h>
+#include <wx/datetime.h>
 
 using namespace ChiChe;
 
@@ -54,6 +55,11 @@ WinnerPanel::WinnerPanel( void )
 	queryComboBox->Insert( "Fastest Wins", 1 );
 	queryComboBox->SetValue( "High Scores" );
 
+	queryResultsView->AppendColumn( new wxDataViewColumn( "Winner", new wxDataViewTextRenderer(), 0 ) );
+	queryResultsView->AppendColumn( new wxDataViewColumn( "Score", new wxDataViewTextRenderer(), 1 ) );
+	queryResultsView->AppendColumn( new wxDataViewColumn( "Turns Taken", new wxDataViewTextRenderer(), 2 ) );
+	queryResultsView->AppendColumn( new wxDataViewColumn( "Date of Win", new wxDataViewDateRenderer(), 3 ) );
+
 	refreshButton->Bind( wxEVT_BUTTON, &WinnerPanel::OnRefreshButtonPressed, this );
 	queryComboBox->Bind( wxEVT_COMBOBOX, &WinnerPanel::OnComboBoxSelectionChanged, this );
 }
@@ -73,6 +79,10 @@ bool WinnerPanel::ExecuteQuery( void )
 	
 	do
 	{
+		// This causes the model to re-sense the data, but more importantly, I'm hoping this
+		// invalidates any pointers the model is hanging on to as they are about to become stale.
+		queryResultsView->GetModel()->Cleared();
+
 		mongo = new Mongo();
 
 		if( !mongo->Connect() )
@@ -138,6 +148,9 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 //=====================================================================================
 /*virtual*/ bool WinnerPanel::WinEntryDataViewModel::IsContainer( const wxDataViewItem& item ) const
 {
+	if( !item.IsOk() )
+		return true;
+
 	return false;
 }
 
@@ -151,7 +164,20 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 //=====================================================================================
 /*virtual*/ unsigned int WinnerPanel::WinEntryDataViewModel::GetChildren( const wxDataViewItem& item, wxDataViewItemArray& children ) const
 {
-	return 0;
+	if( item.IsOk() )
+		return 0;
+
+	for( Mongo::WinEntryList::const_iterator iter = winEntryList.cbegin(); iter != winEntryList.cend(); iter++ )
+	{
+		const Mongo::WinEntry* winEntry = *iter;
+
+		wxDataViewItem item;
+		item.m_pItem = ( void* )winEntry;
+
+		children.Add( item );
+	}
+
+	return winEntryList.size();
 }
 
 //=====================================================================================
@@ -165,19 +191,56 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 {
 	switch( col )
 	{
-		case 0: return "String";
-		case 1: return "Integer";
-		case 2: return "Integer";
-		case 3: return "Date";
+		case 0:
+		{
+			wxVariant variant( "" );
+			return variant.GetType();
+		}
+		case 1:
+		case 2:
+		{
+			wxVariant variant( 1 );
+			return variant.GetType();
+		}
+		case 3:
+		{
+			wxDateTime dateTime;
+			wxVariant variant( dateTime );
+			return variant.GetType();
+		}
 	}
 
-	return "?";
+	return "";
 }
 
 //=====================================================================================
-/*virtual*/ void WinnerPanel::WinEntryDataViewModel::GetValue( wxVariant& varient, const wxDataViewItem& item, unsigned int col ) const
+/*virtual*/ void WinnerPanel::WinEntryDataViewModel::GetValue( wxVariant& variant, const wxDataViewItem& item, unsigned int col ) const
 {
-	// TODO: Feed win list to the view control.
+	const Mongo::WinEntry* winEntry = ( const Mongo::WinEntry* )item.m_pItem;
+
+	switch( col )
+	{
+		case 0:
+		{
+			variant = winEntry->winnerName;
+			break;
+		}
+		case 1:
+		{
+			variant = winEntry->score;
+			break;
+		}
+		case 2:
+		{
+			variant = ( long )winEntry->turnCount;
+			break;
+		}
+		case 3:
+		{
+			variant = winEntry->dateOfWin;
+			break;
+		}
+	}
 }
 
 //=====================================================================================
