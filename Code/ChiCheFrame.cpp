@@ -314,7 +314,7 @@ void Frame::OnAbout( wxCommandEvent& event )
 	wxAboutDialogInfo aboutDialogInfo;
 	
 	aboutDialogInfo.SetName( wxT( "Chinese Checkers" ) );
-	aboutDialogInfo.SetVersion( wxT( "1.0" ) );
+	aboutDialogInfo.SetVersion( wxT( "2.0" ) );
 	aboutDialogInfo.SetDescription( wxT( "This program is free software and distributed under the MIT license." ) );
 	aboutDialogInfo.SetCopyright( wxT( "Copyright (C) 2013, 2016 Spencer T. Parkin <spencer.parkin@disney.com>" ) );
 
