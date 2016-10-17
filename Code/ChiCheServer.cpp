@@ -3,6 +3,7 @@
 #include "ChiCheServer.h"
 #include "ChiCheClient.h"
 #include "ChiCheBoard.h"
+#include "ChiCheChatPanel.h"
 
 using namespace ChiChe;
 
@@ -194,6 +195,19 @@ bool Server::ServiceClient( Participant* participant )
 				outPacket.SetSize( inPacket.GetSize() );
 				outPacket.OwnsMemory( false );
 				BroadcastPacket( outPacket, participant );
+				break;
+			}
+			case Socket::Packet::CHAT_MESSAGE:
+			{
+				int color;
+				wxString message;
+				if( ChatPanel::UnpackChatMessage( inPacket, message, color ) )
+				{
+					Socket::Packet outPacket;
+					ChatPanel::PackChatMessage( outPacket, message, color );
+					BroadcastPacket( outPacket );
+				}
+
 				break;
 			}
 		}

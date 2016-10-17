@@ -61,6 +61,9 @@
     <ClInclude Include="Code\ChiCheWinnerPanel.h">
       <Filter>Code\Panels</Filter>
     </ClInclude>
+    <ClInclude Include="Code\ChiCheChatPanel.h">
+      <Filter>Code\Panels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\ChiCheApp.cpp">
@@ -112,6 +115,9 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="Code\ChiCheWinnerPanel.cpp">
+      <Filter>Code\Panels</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ChiCheChatPanel.cpp">
       <Filter>Code\Panels</Filter>
     </ClCompile>
   </ItemGroup>

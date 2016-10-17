@@ -10,6 +10,7 @@
 #include "ChiCheCanvasPanel.h"
 #include "ChiCheScorePanel.h"
 #include "ChiCheWinnerPanel.h"
+#include "ChiCheChatPanel.h"
 #include <wx/menu.h>
 #include <wx/aboutdlg.h>
 #include <wx/choicdlg.h>
@@ -531,8 +532,8 @@ bool Frame::TogglePanel( const wxString& panelTitle )
 			panel = new ScorePanel();
 		else if( panelTitle == "Winner Panel" )
 			panel = new WinnerPanel();
-		/*else if( panelTitle == "Chat Panel" )
-			panel = new ChatPanel();*/
+		else if( panelTitle == "Chat Panel" )
+			panel = new ChatPanel();
 
 		if( panel )
 		{

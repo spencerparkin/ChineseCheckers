@@ -24,6 +24,10 @@ namespace ChiChe
 
 		void PanelUpdateNeeded( void ) { panelUpdateNeeded = true; }
 
+		void UpdateAllPanels( void );
+		bool IsPanelInUse( const wxString& panelTitle, wxAuiPaneInfo** foundPaneInfo = nullptr );
+		bool TogglePanel( const wxString& panelTitle );
+
 	private:
 
 		enum
@@ -65,10 +69,6 @@ namespace ChiChe
 
 		void KillServer( void );
 		void KillClient( void );
-
-		void UpdateAllPanels( void );
-		bool IsPanelInUse( const wxString& panelTitle, wxAuiPaneInfo** foundPaneInfo = nullptr );
-		bool TogglePanel( const wxString& panelTitle );
 
 		wxTimer timer;
 		wxMenuBar* menuBar;

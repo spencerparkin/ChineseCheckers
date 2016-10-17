@@ -181,6 +181,7 @@
     <ClInclude Include="Code\ChiCheBrain.h" />
     <ClInclude Include="Code\ChiCheCanvas.h" />
     <ClInclude Include="Code\ChiCheCanvasPanel.h" />
+    <ClInclude Include="Code\ChiCheChatPanel.h" />
     <ClInclude Include="Code\ChiCheClient.h" />
     <ClInclude Include="Code\ChiCheFrame.h" />
     <ClInclude Include="Code\ChiCheMongo.h" />
@@ -200,6 +201,7 @@
     <ClCompile Include="Code\ChiCheBrain.cpp" />
     <ClCompile Include="Code\ChiCheCanvas.cpp" />
     <ClCompile Include="Code\ChiCheCanvasPanel.cpp" />
+    <ClCompile Include="Code\ChiCheChatPanel.cpp" />
     <ClCompile Include="Code\ChiCheClient.cpp" />
     <ClCompile Include="Code\ChiCheFrame.cpp" />
     <ClCompile Include="Code\ChiCheMongo.cpp" />

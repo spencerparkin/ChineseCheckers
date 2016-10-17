@@ -22,7 +22,7 @@ ScorePanel::ScorePanel( void )
 //=====================================================================================
 /*virtual*/ void ScorePanel::SetupPaneInfo( wxAuiPaneInfo& paneInfo )
 {
-	paneInfo.MinSize( 100, 300 );
+	paneInfo.MinSize( 150, -1 );
 }
 
 //=====================================================================================

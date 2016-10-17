@@ -6,6 +6,7 @@
 #include "ChiCheFrame.h"
 #include "ChiCheApp.h"
 #include "ChiCheMongo.h"
+#include "ChiCheChatPanel.h"
 #include <wx/progdlg.h>
 #include <wx/generic/progdlgg.h>
 #include <wx/msgdlg.h>
@@ -153,6 +154,21 @@ bool Client::Run( void )
 			case Socket::Packet::END_COMPUTER_THINKING:
 			{
 				UpdateThinkingStatus( inPacket );
+				break;
+			}
+			case Socket::Packet::CHAT_MESSAGE:
+			{
+				int color;
+				wxString message;
+				if( ChatPanel::UnpackChatMessage( inPacket, message, color ) )
+				{
+					wxAuiPaneInfo* foundPaneInfo = nullptr;
+					if( wxGetApp().GetFrame()->IsPanelInUse( "Chat Panel", &foundPaneInfo ) )
+					{
+						ChatPanel* chatPanel = ( ChatPanel* )foundPaneInfo->window;
+						chatPanel->ReceiveChatMessage( message, color );
+					}
+				}
 				break;
 			}
 		}

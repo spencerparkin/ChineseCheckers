@@ -23,6 +23,7 @@ WinnerPanel::WinnerPanel( void )
 //=====================================================================================
 /*virtual*/ void WinnerPanel::SetupPaneInfo( wxAuiPaneInfo& paneInfo )
 {
+	paneInfo.MinSize( 150, -1 );
 }
 
 //=====================================================================================
