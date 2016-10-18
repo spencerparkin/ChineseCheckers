@@ -196,7 +196,8 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 //=====================================================================================
 /*virtual*/ wxString WinnerPanel::WinEntryDataViewModel::GetColumnType( unsigned int col ) const
 {
-	return "";
+	// The GTK2 version won't work without this!
+	return "string";
 }
 
 //=====================================================================================
