@@ -22,6 +22,7 @@
 
 # Built crap
 Build/
+x64/
 ChineseCheckers
 *.snap
 Snap/stage/

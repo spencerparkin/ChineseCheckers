@@ -1,6 +1,16 @@
 // ChiCheClient.cpp
 
-#include "ChiChe.h"
+#include "ChiCheClient.h"
+#include "ChiCheServer.h"
+#include "ChiCheBrain.h"
+#include "ChiCheFrame.h"
+#include "ChiCheApp.h"
+#include "ChiCheMongo.h"
+#include "ChiCheChatPanel.h"
+#include <wx/progdlg.h>
+#include <wx/generic/progdlgg.h>
+#include <wx/msgdlg.h>
+#include <wx/textdlg.h>
 
 using namespace ChiChe;
 
@@ -13,6 +23,8 @@ Client::Client( Type type )
 	color = Board::NONE;
 	selectedLocationID = -1;
 	movePacketSent = false;
+	boardStateReceived = false;
+	gameOver = false;
 	brain = nullptr;
 	if( type == COMPUTER )
 		brain = new Brain();
@@ -71,14 +83,15 @@ bool Client::Run( void )
 	{
 		switch( inPacket.GetType() )
 		{
-			case Server::GAME_STATE:
+			case Socket::Packet::GAME_STATE:
 			{
 				if( !board || !board->SetGameState( inPacket ) )
 					return false;
+				boardStateReceived = true;
 				TellUserWhosTurnItIs();
 				break;
 			}
-			case Server::GAME_MOVE:
+			case Socket::Packet::GAME_MOVE:
 			{
 				wxInt32 sourceID, destinationID;
 				if( board->UnpackMove( inPacket, sourceID, destinationID ) )
@@ -86,28 +99,34 @@ bool Client::Run( void )
 					Board::MoveSequence moveSequence;
 					if( !board->FindMoveSequence( sourceID, destinationID, moveSequence ) )
 						return false;
-					if( !board->ApplyMoveSequence( moveSequence ) )
+					if( !board->ApplyMoveSequence( moveSequence, true ) )
 						return false;
-					TellUserWhosTurnItIs();
-					int winner = board->DetermineWinner();
-					if( winner != Board::NONE )
-					{
-						wxString winnerText;
-						Board::ParticipantText( winner, winnerText );
-						wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
-					}
+					TellUserWhosTurnItIs();	
 				}
 				break;
 			}
-			case Server::ASSIGN_COLOR:
+			case Socket::Packet::SCORE_BONUS:
+			{
+				wxInt32 participant;
+				wxInt64 scoreBonus;
+				Board::UnpackScoreBonus( inPacket, participant, scoreBonus );
+
+				board->ApplyScoreBonus( participant, scoreBonus );
+
+				break;
+			}
+			case Socket::Packet::ASSIGN_COLOR:
 			{
 				wxInt32 data = *( wxInt32* )inPacket.GetData();
 				if( inPacket.ByteSwap() )
 					data = wxINT32_SWAP_ALWAYS( data );
 				color = data;
+				wxString textColor;
+				Board::ParticipantText( color, textColor );
+				wxGetApp().GetFrame()->SetTitle( "Chinese Checkers -- " + textColor );
 				break;
 			}
-			case Server::PARTICIPANTS:
+			case Socket::Packet::PARTICIPANTS:
 			{
 				if( board )
 					return false;
@@ -122,7 +141,7 @@ bool Client::Run( void )
 				Bind( Board::END_BOARD_THINKING, &Client::OnBoardThinking, this );
 				break;
 			}
-			case Server::DROPPED_CLIENT:
+			case Socket::Packet::DROPPED_CLIENT:
 			{
 				wxInt32 color = *( wxInt32* )inPacket.GetData();
 				if( inPacket.ByteSwap() )
@@ -133,11 +152,26 @@ bool Client::Run( void )
 				wxMessageBox( message, wxT( "Dropped Client" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
 				break;
 			}
-			case Server::BEGIN_COMPUTER_THINKING:
-			case Server::UPDATE_COMPUTER_THINKING:
-			case Server::END_COMPUTER_THINKING:
+			case Socket::Packet::BEGIN_COMPUTER_THINKING:
+			case Socket::Packet::UPDATE_COMPUTER_THINKING:
+			case Socket::Packet::END_COMPUTER_THINKING:
 			{
 				UpdateThinkingStatus( inPacket );
+				break;
+			}
+			case Socket::Packet::CHAT_MESSAGE:
+			{
+				int color;
+				wxString message;
+				if( ChatPanel::UnpackChatMessage( inPacket, message, color ) )
+				{
+					wxAuiPaneInfo* foundPaneInfo = nullptr;
+					if( wxGetApp().GetFrame()->IsPanelInUse( "Chat Panel", &foundPaneInfo ) )
+					{
+						ChatPanel* chatPanel = ( ChatPanel* )foundPaneInfo->window;
+						chatPanel->ReceiveChatMessage( message, color );
+					}
+				}
 				break;
 			}
 		}
@@ -147,7 +181,7 @@ bool Client::Run( void )
 	while( type == COMPUTER )
 	{
 		// There's nothing for us to do until the board is created, and we have to have a brain.
-		if( !board || !brain )
+		if( !board || !brain || !boardStateReceived )
 			break;
 
 		// Wait until it's our turn.
@@ -182,10 +216,43 @@ bool Client::Run( void )
 		
 		// Submit our move!
 		Socket::Packet outPacket;
-		Board::PackMove( outPacket, move.sourceID, move.destinationID, GAME_MOVE );
+		Board::PackMove( outPacket, move.sourceID, move.destinationID );
 		socket->WritePacket( outPacket );
 		movePacketSent = true;
 		break;
+	}
+
+	// Gather final points during animation before declaring the winner, if any.
+	if( board && !board->AnyPieceInMotion() && !gameOver )
+	{
+		int winner = board->DetermineWinner();
+		if( winner != Board::NONE )
+		{
+			gameOver = true;
+
+			if( color != winner )
+			{
+				wxString winnerText;
+				Board::ParticipantText( winner, winnerText );
+				wxMessageBox( wxT( "Player " ) + winnerText + wxT( " wins!" ), wxT( "The game is over!" ), wxOK | wxCENTRE, wxGetApp().GetFrame() );
+			}
+			else if( type == COMPUTER || wxYES == wxMessageBox( wxT( "You won!  Would you like to record your score in the database?" ), wxT( "You win!" ), wxYES_NO | wxCENTRE, wxGetApp().GetFrame() ) )
+			{
+				Mongo::WinEntry winEntry;
+				winEntry.dateOfWin.SetToCurrent();
+				winEntry.turnCount = board->GetTurnCount( color );
+				board->GetScore( color, winEntry.score );
+				if( type == HUMAN )
+					winEntry.winnerName = wxGetTextFromUser( "Please enter your name for the record.", "Name Entry", wxEmptyString, wxGetApp().GetFrame() );
+				else
+					winEntry.winnerName = "Chinese Checkers AI";
+
+				Mongo* mongo = new Mongo();
+				if( !mongo->Connect() || !mongo->InsertWinEntry( winEntry ) )
+					wxMessageBox( wxT( "Database communication failed." ), wxT( "Error" ), wxICON_ERROR | wxCENTRE, wxGetApp().GetFrame() );
+				delete mongo;
+			}
+		}
 	}
 
 	return true;
@@ -197,11 +264,11 @@ void Client::OnBoardThinking( Board::Event& event )
 	Socket::Packet outPacket;
 
 	if( event.GetEventType() == Board::BEGIN_BOARD_THINKING )
-		outPacket.SetType( BEGIN_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::BEGIN_COMPUTER_THINKING );
 	else if( event.GetEventType() == Board::UPDATE_BOARD_THINKING )
-		outPacket.SetType( UPDATE_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::UPDATE_COMPUTER_THINKING );
 	else if( event.GetEventType() == Board::END_BOARD_THINKING )
-		outPacket.SetType( END_COMPUTER_THINKING );
+		outPacket.SetType( Socket::Packet::END_COMPUTER_THINKING );
 
 	wxString message = event.GetMessage();
 	size_t size = message.Length() + 1;
@@ -229,20 +296,17 @@ void Client::UpdateThinkingStatus( const Socket::Packet& packet )
 	wxString message = wxString( ( const char* )packet.GetData() );
 	switch( packet.GetType() )
 	{
-		case Client::BEGIN_COMPUTER_THINKING:
-		case Server::BEGIN_COMPUTER_THINKING:
+		case Socket::Packet::BEGIN_COMPUTER_THINKING:
 		{
 			statusBar->PushStatusText( message );
 			break;
 		}
-		case Client::UPDATE_COMPUTER_THINKING:
-		case Server::UPDATE_COMPUTER_THINKING:
+		case Socket::Packet::UPDATE_COMPUTER_THINKING:
 		{
 			statusBar->SetStatusText( message );
 			break;
 		}
-		case Client::END_COMPUTER_THINKING:
-		case Server::END_COMPUTER_THINKING:
+		case Socket::Packet::END_COMPUTER_THINKING:
 		{
 			statusBar->PopStatusText();
 			break;
@@ -268,7 +332,7 @@ bool Client::ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hit
 			if( board->FindMoveSequence( selectedLocationID, locationID, moveSequence ) )
 			{
 				Socket::Packet outPacket;
-				Board::PackMove( outPacket, selectedLocationID, locationID, GAME_MOVE );
+				Board::PackMove( outPacket, selectedLocationID, locationID );
 				socket->WritePacket( outPacket );
 			}
 		}

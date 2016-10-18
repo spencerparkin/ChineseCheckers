@@ -1,6 +1,10 @@
 // ChiCheApp.cpp
 
-#include "ChiChe.h"
+#include "ChiCheApp.h"
+#include "ChiCheFrame.h"
+#include "ChiCheSound.h"
+#include "ChiCheMongo.h"
+#include <wx/setup.h>
 
 using namespace ChiChe;
 
@@ -20,6 +24,8 @@ App::~App( void )
 	if( sound )
 		sound->Shutdown();
 	delete sound;
+
+	Mongo::CleanUp();
 }
 
 //=====================================================================================
@@ -29,6 +35,11 @@ App::~App( void )
 
 	if( !wxApp::OnInit() )
 		return false;
+
+	if( !Mongo::Init() )
+	{
+		//return false;
+	}
 	
 	sound = new Sound();
 	if( !sound->Setup() )

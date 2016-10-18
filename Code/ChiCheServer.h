@@ -1,23 +1,19 @@
 // ChiCheServer.h
 
+#pragma once
+
+#include "ChiCheSocket.h"
+#include <list>
+
 namespace ChiChe
 {
+	class Socket;
+	class Board;
+
 	//=====================================================================================
 	class Server
 	{
 	public:
-
-		enum PacketType
-		{
-			ASSIGN_COLOR,
-			PARTICIPANTS,
-			GAME_MOVE,
-			GAME_STATE,
-			DROPPED_CLIENT,
-			BEGIN_COMPUTER_THINKING,
-			UPDATE_COMPUTER_THINKING,
-			END_COMPUTER_THINKING,
-		};
 
 		Server( int participants );
 		~Server( void );
@@ -54,6 +50,7 @@ namespace ChiChe
 		void BroadcastPacket( Socket::Packet& outPacket, Participant* excludedParticipant = 0 );
 
 		Board* board;
+		bool gameOver;
 		wxSocketServer* socketServer;
 		ParticipantList participantList;
 	};

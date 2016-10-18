@@ -1,5 +1,10 @@
 // ChiCheCanvas.h
 
+#pragma once
+
+#include <wx/glcanvas.h>
+#include "c3ga/c3ga.h"
+
 namespace ChiChe
 {
 	//=====================================================================================

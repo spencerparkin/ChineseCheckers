@@ -1,5 +1,9 @@
 // ChiCheSocket.h
 
+#pragma once
+
+#include <wx/socket.h>
+
 namespace ChiChe
 {
 	//=====================================================================================
@@ -23,6 +27,20 @@ namespace ChiChe
 		class Packet
 		{
 		public:
+
+			enum Type
+			{
+				ASSIGN_COLOR,
+				PARTICIPANTS,
+				GAME_MOVE,
+				GAME_STATE,
+				DROPPED_CLIENT,
+				SCORE_BONUS,
+				BEGIN_COMPUTER_THINKING,
+				UPDATE_COMPUTER_THINKING,
+				END_COMPUTER_THINKING,
+				CHAT_MESSAGE,
+			};
 
 			Packet( void );
 			~Packet( void );

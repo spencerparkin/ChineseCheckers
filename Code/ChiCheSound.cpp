@@ -1,6 +1,9 @@
 // ChiCheSound.cpp
 
-#include "ChiChe.h"
+#include "ChiCheSound.h"
+#include <wx/msgdlg.h>
+#include <wx/dir.h>
+#include <wx/filename.h>
 
 using namespace ChiChe;
 

@@ -1,8 +1,15 @@
 // ChiCheBrain.cpp
 
-#include "ChiChe.h"
+#include "ChiCheBrain.h"
+#include <wx/thread.h>
+#include <wx/progdlg.h>
 
 using namespace ChiChe;
+
+// BUG: I just found a bug in the AI.  It can't finish the game in the case that
+//      A perfect diamond is formed in the target zone, except for one marble that
+//      jumps back and forther over the vertex sticking out of the target zone.
+//      A deterministics game between yellow and cyan will reproduce this.
 
 //=====================================================================================
 Brain::Brain( void )

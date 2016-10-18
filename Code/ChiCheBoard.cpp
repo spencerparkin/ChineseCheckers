@@ -1,6 +1,13 @@
 // ChiCheBoard.cpp
 
-#include "ChiChe.h"
+#include "ChiCheBoard.h"
+#include "ChiCheClient.h"
+#include "ChiCheServer.h"
+#include "ChiCheApp.h"
+#include "ChiCheFrame.h"
+#include "ChiCheSphere.h"
+#include "ChiCheSound.h"
+#include <wx/xml/xml.h>
 
 using namespace ChiChe;
 
@@ -62,6 +69,12 @@ wxEvtHandler* Board::GetEventHandler( void )
 //=====================================================================================
 void Board::NextTurn( void )
 {
+	TurnCountMap::iterator iter = turnCountMap.find( whosTurn );
+	if( iter == turnCountMap.end() )
+		turnCountMap.insert( std::pair< int, int >( whosTurn, 1 ) );
+	else
+		iter->second++;
+
 	IncrementTurn();
 	while( !IsParticipant( whosTurn ) )
 		IncrementTurn();
@@ -106,7 +119,7 @@ int Board::WhosTurn( void )
 //=====================================================================================
 /*static*/ int Board::ZoneTarget( int color )
 {
-	// This is baed on the layout map!
+	// This is based on the layout map!
 	return ( color + 2 ) % 6 + 1;
 }
 
@@ -127,9 +140,19 @@ int Board::WhosTurn( void )
 }
 
 //=====================================================================================
+int Board::GetTurnCount( int participant )
+{
+	TurnCountMap::iterator iter = turnCountMap.find( participant );
+	if( iter == turnCountMap.end() )
+		return -1;
+
+	return iter->second;
+}
+
+//=====================================================================================
 /*static*/ bool Board::UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID )
 {
-	if( inPacket.GetType() != Client::GAME_MOVE && inPacket.GetType() != Server::GAME_MOVE )
+	if( inPacket.GetType() != Socket::Packet::GAME_MOVE )
 		return false;
 		
 	if( inPacket.GetSize() != 2 * sizeof( wxInt32 ) )
@@ -151,20 +174,56 @@ int Board::WhosTurn( void )
 }
 
 //=====================================================================================
-/*static*/ bool Board::PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType )
+/*static*/ bool Board::PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID )
 {
 	outPacket.Reset();
-
-	if( packetType != Client::GAME_MOVE && packetType != Server::GAME_MOVE )
-		return false;
 
 	wxInt32* data = new wxInt32[2];
 	data[0] = sourceID;
 	data[1] = destinationID;
 
-	outPacket.SetType( packetType );
+	outPacket.SetType( Socket::Packet::GAME_MOVE );
 	outPacket.SetData( ( wxInt8* )data );
 	outPacket.SetSize( sizeof( wxInt32 ) * 2 );
+	outPacket.OwnsMemory( true );
+
+	return true;
+}
+
+//=====================================================================================
+/*static*/ bool Board::UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus )
+{
+	if( inPacket.GetType() != Socket::Packet::SCORE_BONUS )
+		return false;
+
+	if( inPacket.GetSize() != 2 * sizeof( wxInt64 ) )
+		return false;
+
+	wxInt64* data = ( wxInt64* )inPacket.GetData();
+	if( inPacket.ByteSwap() )
+	{
+		data[0] = wxINT64_SWAP_ALWAYS( data[0] );
+		data[1] = wxINT64_SWAP_ALWAYS( data[1] );
+	}
+
+	participant = ( wxInt32 )data[0];
+	scoreBonus = data[1];
+
+	return true;
+}
+
+//=====================================================================================
+/*static*/ bool Board::PackScoreBonus( Socket::Packet& outPacket, wxInt32 participant, wxInt64 scoreBonus )
+{
+	outPacket.Reset();
+
+	wxInt64* data = new wxInt64[2];
+	data[0] = participant;
+	data[1] = scoreBonus;
+
+	outPacket.SetType( Socket::Packet::SCORE_BONUS );
+	outPacket.SetData( ( wxInt8* )data );
+	outPacket.SetSize( sizeof( wxInt64 ) * 2 );
 	outPacket.OwnsMemory( true );
 
 	return true;
@@ -344,7 +403,7 @@ bool Board::GetGameState( Socket::Packet& outPacket )
 
 	locationDataArray[ size - 1 ] = whosTurn;
 
-	outPacket.SetType( Server::GAME_STATE );
+	outPacket.SetType( Socket::Packet::GAME_STATE );
 	outPacket.SetData( ( wxInt8* )locationDataArray );
 	outPacket.SetSize( size * sizeof( wxInt32 ) );
 	outPacket.OwnsMemory( true );
@@ -355,7 +414,7 @@ bool Board::GetGameState( Socket::Packet& outPacket )
 //=====================================================================================
 bool Board::SetGameState( const Socket::Packet& inPacket )
 {
-	if( inPacket.GetType() != Server::GAME_STATE )
+	if( inPacket.GetType() != Socket::Packet::GAME_STATE )
 		return false;
 
 	wxInt32 size = locationMap.size() * 2 + 1;
@@ -601,7 +660,7 @@ void Board::Animate( double frameRate )
 	for( PieceList::iterator iter = pieceList.begin(); iter != pieceList.end(); iter++ )
 	{
 		Piece* piece = *iter;
-		piece->Animate( frameRate );
+		piece->Animate( frameRate, this );
 	}
 }
 
@@ -740,7 +799,7 @@ void Board::Move::Inverse( Move& inverseMove ) const
 // Here we assume that the given move sequence is valid.  Notice that here
 // we advance who's turn it is.  This is, by definition, part of the application
 // of a given move sequence.
-bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
+bool Board::ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonuses )
 {
 	int sourceID = *moveSequence.begin();
 	int destinationID = moveSequence.back();
@@ -758,6 +817,46 @@ bool Board::ApplyMoveSequence( const MoveSequence& moveSequence )
 	sourceLocation->SetPiece(0);
 	if( piece )
 		piece->ResetAnimation( moveSequence );
+
+	if( applyBonuses )
+	{
+		Client* client = wxGetApp().GetClient();
+		if( client && client->GetColor() == whosTurn )
+		{
+			long scoreBonus = 0;
+
+			bool hitHomeZone = false;
+			bool hitTargetZone = false;
+
+			// Bonus points for every foreign zone you touch!
+			for( MoveSequence::const_iterator iter = moveSequence.cbegin(); iter != moveSequence.cend(); iter++ )
+			{
+				int locationID = *iter;
+				Location* location = locationMap[ locationID ];
+				if( location->GetZone() != NONE )
+				{
+					if( location->GetZone() != whosTurn && location->GetZone() != ZoneTarget( whosTurn ) )
+						if( iter != moveSequence.cbegin() )
+							scoreBonus += 100;
+					if( location->GetZone() == whosTurn )
+						hitHomeZone = true;
+					if( location->GetZone() == ZoneTarget( whosTurn ) )
+						hitTargetZone = true;
+				}
+			}
+
+			// Bonus points if you can hop all the way from your home-zone to the target-zone!!
+			if( hitHomeZone && hitTargetZone )
+				scoreBonus += 500;
+
+			if( scoreBonus > 0 )
+			{
+				Socket::Packet outPacket;
+				PackScoreBonus( outPacket, whosTurn, scoreBonus );
+				wxGetApp().GetClient()->GetSocket()->WritePacket( outPacket );
+			}
+		}
+	}
 
 	NextTurn();
 
@@ -928,6 +1027,116 @@ void Board::Location::GetRenderColor( c3ga::vectorE3GA& renderColor )
 }
 
 //=====================================================================================
+bool Board::GetScore( int participant, long& score )
+{
+	if( !IsParticipant( participant ) )
+		return false;
+	score = 0;
+	ScoreMap::iterator iter = scoreMap.find( participant );
+	if( iter != scoreMap.end() )
+		score = iter->second;
+	return true;
+}
+
+//=====================================================================================
+bool Board::SetScore( int participant, long score )
+{
+	if( !IsParticipant( participant ) )
+		return false;
+	ScoreMap::iterator iter = scoreMap.find( participant );
+	if( iter == scoreMap.end() )
+		scoreMap.insert( std::pair< int, long >( participant, score ) );
+	else
+		iter->second = score;
+	wxGetApp().GetFrame()->PanelUpdateNeeded();
+	return true;
+}
+
+//=====================================================================================
+bool Board::ApplyScoreBonus( int participant, long scoreBonus )
+{
+	long score;
+	if( !GetScore( participant, score ) )
+		return false;
+	score += scoreBonus;
+	SetScore( participant, score );
+	return true;
+}
+
+//=====================================================================================
+void Board::AccumulateScoreForMove( const Move& move, int participant, int jumpCount )
+{
+	long score;
+	if( !GetScore( participant, score ) )
+		return;
+
+	Location* sourceLocation = locationMap[ move.sourceID ];
+	Location* destinationLocation = locationMap[ move.destinationID ];
+
+	long jumpScore = 0;
+	long jumpScoreMultiplier = jumpCount;
+
+	Location* mutualAdjacency = nullptr;
+	if( LocationsAreAdjacent( sourceLocation, destinationLocation, &mutualAdjacency ) )
+	{
+		jumpScore = 1;
+	}
+	else if( mutualAdjacency )
+	{
+		jumpScore = 2;
+
+		// This can actually happen during game-play, because another computer player
+		// may take it's turn before the previous player's move is finished animating.
+		//wxASSERT( mutualAdjacency->GetOccupant() != NONE );
+
+		// If you jump someone else's marble, you get extra points!
+		if( mutualAdjacency->GetOccupant() != participant )
+			jumpScore = 4;
+	}
+	else
+	{
+		// This would indicate that an invalid move was made.
+		wxASSERT( false );
+	}
+
+	score += jumpScore * jumpScoreMultiplier;
+	SetScore( participant, score );
+}
+
+//=====================================================================================
+bool Board::LocationsAreAdjacent( Location* locationA, Location* locationB, Location** mutualAdjacency /*= nullptr*/ )
+{
+	if( mutualAdjacency )
+		*mutualAdjacency = nullptr;
+
+	for( int i = 0; i < ADJACENCIES; i++ )
+		if( locationA->GetAdjacency(i) == locationB )
+			return true;
+
+	if( mutualAdjacency )
+	{
+		for( int i = 0; i < ADJACENCIES; i++ )
+		{
+			Location* adjacencyA = locationA->GetAdjacency(i);
+			if( !adjacencyA )
+				continue;
+			
+			for( int j = 0; j < ADJACENCIES; j++ )
+			{
+				Location* adjacencyB = locationB->GetAdjacency(j);
+				if( adjacencyB != adjacencyA )
+					continue;
+				
+				*mutualAdjacency = adjacencyA;
+				return false;
+			}
+		}
+	}
+
+	return false;
+}
+
+//=====================================================================================
 /*static*/ void Board::RenderColor( int color, c3ga::vectorE3GA& renderColor )
 {
 	// This array depends upon the enum order in the header file!
@@ -1005,6 +1214,7 @@ Board::Piece::Piece( int locationID )
 	moveSequence.push_back( locationID );
 
 	pivotAngle = 0.0;
+	jumpCount = 0;
 }
 
 //=====================================================================================
@@ -1020,6 +1230,12 @@ int Board::Piece::GetLocationID( void )
 
 	int locationID = moveSequence.back();
 	return locationID;
+}
+
+//=====================================================================================
+int Board::Piece::GetJumpCount( void )
+{
+	return jumpCount;
 }
 
 //=====================================================================================
@@ -1091,7 +1307,7 @@ void Board::Piece::Render( Board* board, bool highlight )
 
 //=====================================================================================
 // This is called once per frame to animate a board piece.
-void Board::Piece::Animate( double frameRate )
+void Board::Piece::Animate( double frameRate, Board* board )
 {
 	if( moveSequence.size() > 1 )
 	{
@@ -1099,12 +1315,49 @@ void Board::Piece::Animate( double frameRate )
 		pivotAngle += radiansPerFrame;
 		if( pivotAngle > M_PI )
 		{
-			pivotAngle = 0.0;
+			jumpCount++;
+
+			Move move;
+			move.sourceID = *moveSequence.begin();
 			moveSequence.pop_front();
+			move.destinationID = *moveSequence.begin();
+
+			int locationID = GetLocationID();
+			int color = board->OccupantAtLocation( locationID );
+
+			board->AccumulateScoreForMove( move, color, jumpCount );
+
+			pivotAngle = 0.0;
 
 			int i = int( 100.f * float( rand() ) / float( RAND_MAX ) ) % 3 + 1;
 			wxString soundEffect = wxGetApp().soundEffect + wxString::Format( "%d", i );
 			wxGetApp().GetSound()->PlayWave( soundEffect );
+
+			if( wxGetApp().GetClient()->GetColor() == color )
+			{
+				wxInt64 scoreBonus = 0;
+
+				// Bonus points if you're playing with sound FX turned on!!
+				if( wxGetApp().GetSound()->IsEnabled() )
+				{
+					if( wxGetApp().soundEffect == "Doink" )
+						scoreBonus += 5 * jumpCount;
+					else if( wxGetApp().soundEffect == "Hiyaw" )
+						scoreBonus += 10 * jumpCount;
+					else if( wxGetApp().soundEffect == "Fart" )
+						scoreBonus += 15 * jumpCount;
+				}
+
+				if( scoreBonus > 0 )
+				{
+					Socket::Packet outPacket;
+					Board::PackScoreBonus( outPacket, color, scoreBonus );
+					wxGetApp().GetClient()->GetSocket()->WritePacket( outPacket );
+				}
+			}
+
+			if( moveSequence.size() == 0 )
+				jumpCount = 0;
 		}
 	}
 }
@@ -1121,6 +1374,7 @@ bool Board::Piece::IsInMotion( void )
 void Board::Piece::ResetAnimation( const MoveSequence& moveSequence )
 {
 	pivotAngle = 0.0;
+	jumpCount = 0;
 	this->moveSequence = moveSequence;
 }
 

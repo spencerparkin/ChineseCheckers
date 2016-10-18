@@ -1,5 +1,14 @@
 // ChiCheBoard.h
 
+#pragma once
+
+#include "ChiCheSocket.h"
+#include "c3ga/c3ga.h"
+#include <wx/glcanvas.h>
+#include <wx/event.h>
+#include <list>
+#include <map>
+
 namespace ChiChe
 {
 	//=====================================================================================
@@ -74,6 +83,8 @@ namespace ChiChe
 		typedef std::list< Piece* > PieceList;
 		typedef std::map< int, bool > VisitationMap;
 		typedef std::map< int, int > TargetCountMap;
+		typedef std::map< int, long > ScoreMap;
+		typedef std::map< int, int > TurnCountMap;
 
 		// Construct a game board with the given participants.
 		Board( int participants, bool animate );
@@ -96,7 +107,11 @@ namespace ChiChe
 		static bool UnpackMove( const Socket::Packet& inPacket, wxInt32& sourceID, wxInt32& destinationID );
 
 		// Put a game move into the given packet.
-		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID, int packetType );
+		static bool PackMove( Socket::Packet& outPacket, wxInt32 sourceID, wxInt32 destinationID );
+
+		// Pack and unpack score bonuses!
+		static bool UnpackScoreBonus( const Socket::Packet& inPacket, wxInt32& participant, wxInt64& scoreBonus );
+		static bool PackScoreBonus( Socket::Packet& outPacket, wxInt32 participant, wxInt64 scoreBonus );
 
 		// Is the given color particpating in the game?
 		bool IsParticipant( int color );
@@ -128,6 +143,12 @@ namespace ChiChe
 		// Advance the position of each board piece by one frame's worth of animation.
 		void Animate( double frameRate );
 
+		// Keep score as each given move is made.
+		void AccumulateScoreForMove( const Move& move, int participant, int jumpCount );
+
+		// Tell us if the given locations are adjacent.  If not, tell us if they have a mutual adjacency.
+		bool LocationsAreAdjacent( Location* locationA, Location* locationB, Location** mutualAdjacency = nullptr );
+
 		// Return the location ID of the location selected by the user, if any.
 		int FindSelectedLocation( unsigned int* hitBuffer, int hitBufferSize, int hitCount );
 
@@ -137,7 +158,14 @@ namespace ChiChe
 		bool FindMoveSequence( const Move& move, MoveSequence& moveSequence );
 
 		// Change the state of the game board by the given move sequence.  This will also change who's turn it is.
-		bool ApplyMoveSequence( const MoveSequence& moveSequence );
+		bool ApplyMoveSequence( const MoveSequence& moveSequence, bool applyBonuses );
+
+		// Get bonus points to the given participant!
+		bool ApplyScoreBonus( int participant, long scoreBonus );
+
+		// Access the score for the given participant.
+		bool GetScore( int participant, long& score );
+		bool SetScore( int participant, long score );
 
 		// Package the state of the entire game into a packet.
 		bool GetGameState( Socket::Packet& outPacket );
@@ -167,6 +195,9 @@ namespace ChiChe
 		// These are used to save and restore test cases for faster bug reproduction.
 		bool SaveToXML( const wxString& xmlFile );
 		bool LoadFromXML( const wxString& xmlFile );
+
+		// Tell us how many turns the given participant has taken.
+		int GetTurnCount( int participant );
 
 		//=====================================================================================
 		// Each of these represents a location on the game board.
@@ -229,7 +260,7 @@ namespace ChiChe
 			~Piece( void );
 
 			void Render( Board* board, bool highlight );
-			void Animate( double frameRate );
+			void Animate( double frameRate, Board* board );
 
 			void ResetAnimation( const MoveSequence& moveSequence );
 
@@ -237,10 +268,13 @@ namespace ChiChe
 
 			bool IsInMotion( void );
 
+			int GetJumpCount( void );
+
 		private:
 
 			MoveSequence moveSequence;
 			double pivotAngle;
+			int jumpCount;
 		};
 
 	private:
@@ -267,6 +301,8 @@ namespace ChiChe
 		LocationMap locationMap;
 		PieceList pieceList;
 		bool animate;
+		ScoreMap scoreMap;
+		TurnCountMap turnCountMap;
 	};
 }
 

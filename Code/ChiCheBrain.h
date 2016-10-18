@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ChiCheBoard.h"
+
 namespace ChiChe
 {
 	class Brain;

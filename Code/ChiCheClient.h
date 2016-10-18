@@ -1,19 +1,19 @@
 // ChiCheClient.h
 
+#pragma once
+
+#include "ChiCheBoard.h"
+#include <wx/event.h>
+#include <wx/glcanvas.h>
+
 namespace ChiChe
 {
+	class Brain;
+	
 	//=====================================================================================
 	class Client : public wxEvtHandler
 	{
 	public:
-
-		enum PacketType
-		{
-			GAME_MOVE,
-			BEGIN_COMPUTER_THINKING,
-			UPDATE_COMPUTER_THINKING,
-			END_COMPUTER_THINKING,
-		};
 
 		enum Type
 		{
@@ -30,6 +30,10 @@ namespace ChiChe
 		bool Animate( double frameRate );
 		bool ProcessHitList( unsigned int* hitBuffer, int hitBufferSize, int hitCount );
 
+		int GetColor( void ) { return color; }
+		Socket* GetSocket( void ) { return socket; }
+		Board* GetBoard( void ) { return board; }
+
 	private:
 
 		void TellUserWhosTurnItIs( void );
@@ -43,6 +47,8 @@ namespace ChiChe
 		int color;
 		int selectedLocationID;
 		bool movePacketSent;
+		bool gameOver;
+		bool boardStateReceived;
 		Brain* brain;
 	};
 }

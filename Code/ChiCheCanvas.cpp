@@ -1,6 +1,12 @@
 // ChiCheCanvas.cpp
 
-#include "ChiChe.h"
+#include "ChiCheCanvas.h"
+#include "ChiCheClient.h"
+#include "ChiCheApp.h"
+#include "ChiCheSound.h"
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <wx/time.h>
 
 using namespace ChiChe;
 

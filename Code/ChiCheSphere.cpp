@@ -1,8 +1,11 @@
 // ChiCheSphere.cpp
 
-#include "ChiChe.h"
+#include "ChiCheSphere.h"
+#include <wx/glcanvas.h>
 
 using namespace ChiChe;
+
+// TODO: Might be fun to texture the spheres.
 
 //=====================================================================================
 /*static*/ void Sphere::Render( const c3ga::vectorE3GA& location, double radius, int subDivisionCount /*= 2*/ )
