@@ -6,8 +6,8 @@ obj_env = Environment()
 obj_env.MergeFlags( '!wx-config --cxxflags' )
 obj_env.MergeFlags( '!pkg-config --cflags --libs libmongoc-1.0' )
 obj_env.MergeFlags( '!pkg-config --cflags --libs libbson-1.0' )
-#obj_env.Append( CCFLAGS = '--std=c++11' )
-obj_env.Append( CCFLAGS = '-g' )
+obj_env.Append( CCFLAGS = '--std=c++11' )
+#obj_env.Append( CCFLAGS = '-ggdb' )
 
 if not obj_env.GetOption( 'clean' ):
   conf = Configure( obj_env )
@@ -31,11 +31,9 @@ for source_file in cpp_source_list:
   object_file = obj_env.StaticObject( source_file )
   object_list.append( object_file )
 
-prog_env = Environment( PROGNAME = 'ChineseCheckers', parse_flags = '!wx-config --libs core base adv net gl aui richtext' )
-prog_env.Append( LIBS = '-lGL' )
-prog_env.Append( LIBS = '-lGLU' )
-prog_env.Append( LIBS = '-lSDL2' )
-#prog_env.Append( CCFLAGS = '-g' )
+# Why can't I add any CCFLAGS to this?
+prog_env = Environment( PROGNAME = 'ChineseCheckers', LIBS = [ '-lGL', '-lGLU', '-lSDL2' ] )
+prog_env.MergeFlags( '!wx-config --libs core base adv net gl aui richtext' )
 prog_env.MergeFlags( '!pkg-config --libs libbson-1.0' )
 prog_env.MergeFlags( '!pkg-config --libs libmongoc-1.0' )
 prog = prog_env.Program( '$PROGNAME', source = object_list )
