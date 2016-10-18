@@ -121,6 +121,9 @@ bool Client::Run( void )
 				if( inPacket.ByteSwap() )
 					data = wxINT32_SWAP_ALWAYS( data );
 				color = data;
+				wxString textColor;
+				Board::ParticipantText( color, textColor );
+				wxGetApp().GetFrame()->SetTitle( "Chinese Checkers -- " + textColor );
 				break;
 			}
 			case Socket::Packet::PARTICIPANTS:
