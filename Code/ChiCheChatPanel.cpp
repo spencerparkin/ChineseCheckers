@@ -36,8 +36,9 @@ ChatPanel::ChatPanel( void )
 	outputText = new wxRichTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1, -1 ), wxRE_MULTILINE | wxRE_READONLY );
 	inputText = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1, 20 ), wxTE_PROCESS_ENTER );
 
+#ifndef __LINUX__
 	outputText->SetBackgroundColour( wxColour( 0, 0, 0 ) );
-	outputText->SetForegroundColour( wxColour( 255, 255, 255 ) );
+#endif
 
 	wxBoxSizer* boxSizer = new wxBoxSizer( wxVERTICAL );
 	boxSizer->Add( outputText, 1, wxGROW | wxALL, 0 );
@@ -90,7 +91,11 @@ void ChatPanel::ReceiveChatMessage( const wxString& message, int color )
 	outputText->WriteText( textColor + ": " );
 	outputText->EndTextColour();
 	outputText->EndBold();
+#ifndef __LINUX__
 	outputText->BeginTextColour( wxColour( 255, 255, 255 ) );
+#else
+	outputText->BeginTextColour( wxColour( 0, 0, 0 ) );
+#endif
 	outputText->WriteText( message );
 	outputText->EndTextColour();
 	outputText->Newline();
