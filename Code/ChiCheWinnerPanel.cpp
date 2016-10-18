@@ -196,27 +196,6 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 //=====================================================================================
 /*virtual*/ wxString WinnerPanel::WinEntryDataViewModel::GetColumnType( unsigned int col ) const
 {
-	switch( col )
-	{
-		case 0:
-		{
-			wxVariant variant( "" );
-			return variant.GetType();
-		}
-		case 1:
-		case 2:
-		{
-			wxVariant variant( 1 );
-			return variant.GetType();
-		}
-		case 3:
-		{
-			wxDateTime dateTime;
-			wxVariant variant( dateTime );
-			return variant.GetType();
-		}
-	}
-
 	return "";
 }
 
