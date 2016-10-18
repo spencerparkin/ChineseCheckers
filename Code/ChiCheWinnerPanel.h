@@ -5,7 +5,11 @@
 #include "ChiChePanel.h"
 #include "ChiCheMongo.h"
 #include <wx/combobox.h>
-#include <wx/dataview.h>
+#ifdef __LINUX__
+#	include <wx/listctrl.h>
+#else
+#	include <wx/dataview.h>
+#endif
 #include <wx/button.h>
 #include <wx/spinctrl.h>
 
@@ -26,6 +30,7 @@ public:
 	virtual void CreateControls( void ) override;
 	virtual void Update( void ) override;
 
+#ifndef __LINUX__
 	class WinEntryDataViewModel : public wxDataViewModel
 	{
 	public:
@@ -43,6 +48,9 @@ public:
 
 		Mongo::WinEntryList winEntryList;
 	};
+#else
+	Mongo::WinEntryList winEntryList;
+#endif
 
 private:
 
@@ -54,7 +62,11 @@ private:
 	wxComboBox* queryComboBox;
 	wxSpinCtrl* maxResultsSpin;
 	wxButton* refreshButton;
+#ifdef __LINUX__
+	wxListView* queryResultsView;
+#else
 	wxDataViewCtrl* queryResultsView;
+#endif
 	
 };
 

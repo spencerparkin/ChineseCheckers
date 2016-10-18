@@ -38,7 +38,11 @@ WinnerPanel::WinnerPanel( void )
 	headerBoxSizer->Add( maxResultsSpin, 0, wxALL, 4 );
 	headerBoxSizer->Add( refreshButton, 0, wxALL, 4 );
 
+#ifdef __LINUX__
+	queryResultsView = new wxListView( this, wxID_ANY );
+#else
 	queryResultsView = new wxDataViewCtrl( this, wxID_ANY );
+#endif
 	wxBoxSizer* boxSizer = new wxBoxSizer( wxVERTICAL );
 	boxSizer->Add( headerBoxSizer, 0, 0 );
 	boxSizer->Add( queryResultsView, 1, wxGROW );
@@ -47,6 +51,7 @@ WinnerPanel::WinnerPanel( void )
 	maxResultsSpin->SetRange( 1, 300 );
 	maxResultsSpin->SetValue( 20 );
 
+#ifndef __LINUX__
 	wxObjectDataPtr< WinEntryDataViewModel > winEntryDataViewModel;
 	winEntryDataViewModel = new WinEntryDataViewModel();
 	queryResultsView->AssociateModel( winEntryDataViewModel.get() );
@@ -59,6 +64,12 @@ WinnerPanel::WinnerPanel( void )
 	queryResultsView->AppendColumn( new wxDataViewColumn( "Score", new wxDataViewTextRenderer(), 1 ) );
 	queryResultsView->AppendColumn( new wxDataViewColumn( "Turns Taken", new wxDataViewTextRenderer(), 2 ) );
 	queryResultsView->AppendColumn( new wxDataViewColumn( "Date of Win", new wxDataViewDateRenderer(), 3 ) );
+#else
+	queryResultsView->AppendColumn( "Winner" );
+	queryResultsView->AppendColumn( "Score" );
+	queryResultsView->AppendColumn( "Turns Taken" );
+	queryResultsView->AppendColumn( "Date of Win" );
+#endif
 
 	refreshButton->Bind( wxEVT_BUTTON, &WinnerPanel::OnRefreshButtonPressed, this );
 	queryComboBox->Bind( wxEVT_COMBOBOX, &WinnerPanel::OnComboBoxSelectionChanged, this );
@@ -68,7 +79,26 @@ WinnerPanel::WinnerPanel( void )
 /*virtual*/ void WinnerPanel::Update( void )
 {
 	if( queryResultsView )
+	{
+#ifndef __LINUX__
 		queryResultsView->GetModel()->Cleared();
+#else
+		queryResultsView->DeleteAllItems();
+		
+		int i = 0;
+		for( Mongo::WinEntryList::const_iterator iter = winEntryList.cbegin(); iter != winEntryList.cend(); iter++ )
+		{
+			const Mongo::WinEntry* winEntry = *iter;
+		
+			queryResultsView->InsertItem( i, winEntry->winnerName );
+			queryResultsView->SetItem( i, 1, wxString::Format( "%ld", winEntry->score ) );
+			queryResultsView->SetItem( i, 2, wxString::Format( "%d", winEntry->turnCount ) );
+			queryResultsView->SetItem( i, 3, winEntry->dateOfWin.Format() );
+		
+			i++;
+		}
+#endif
+	}
 }
 
 //=====================================================================================
@@ -79,9 +109,11 @@ bool WinnerPanel::ExecuteQuery( void )
 	
 	do
 	{
+#ifndef __LINUX__
 		// This causes the model to re-sense the data, but more importantly, I'm hoping this
 		// invalidates any pointers the model is hanging on to as they are about to become stale.
 		queryResultsView->GetModel()->Cleared();
+#endif
 
 		mongo = new Mongo();
 
@@ -93,17 +125,20 @@ bool WinnerPanel::ExecuteQuery( void )
 
 		int winEntryListSize = maxResultsSpin->GetValue();
 
+#ifndef __LINUX__
 		WinEntryDataViewModel* winEntryDataViewModel = ( WinEntryDataViewModel* )queryResultsView->GetModel();
-
+		WinEntryList& winEntryList = winEntryDataViewModel->winEntryList;
+#endif
+		
 		wxString whichQuery = queryComboBox->GetValue();
 		if( whichQuery == "High Scores" )
 		{
-			if( !mongo->GetTopHighScoresList( winEntryDataViewModel->winEntryList, winEntryListSize ) )
+			if( !mongo->GetTopHighScoresList( winEntryList, winEntryListSize ) )
 				break;
 		}
 		else if( whichQuery == "Fastest Wins" )
 		{
-			if( !mongo->GetFastestWinList( winEntryDataViewModel->winEntryList, winEntryListSize ) )
+			if( !mongo->GetFastestWinList( winEntryList, winEntryListSize ) )
 				break;
 		}
 		else
@@ -140,6 +175,8 @@ void WinnerPanel::OnComboBoxSelectionChanged( wxCommandEvent& event )
 	ExecuteQuery();
 	Update();
 }
+
+#ifndef __LINUX__
 
 //=====================================================================================
 WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
@@ -235,5 +272,7 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 {
 	return false;
 }
+
+#endif //!__LINUX__
 
 // ChiCheWinnerPanel.cpp
