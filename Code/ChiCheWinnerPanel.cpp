@@ -38,7 +38,7 @@ WinnerPanel::WinnerPanel( void )
 	headerBoxSizer->Add( maxResultsSpin, 0, wxALL, 4 );
 	headerBoxSizer->Add( refreshButton, 0, wxALL, 4 );
 
-#ifdef __LINUX__
+#ifdef AVOID_GTK_DATAVIEW_BUG
 	queryResultsView = new wxListView( this, wxID_ANY );
 #else
 	queryResultsView = new wxDataViewCtrl( this, wxID_ANY );
@@ -51,14 +51,14 @@ WinnerPanel::WinnerPanel( void )
 	maxResultsSpin->SetRange( 1, 300 );
 	maxResultsSpin->SetValue( 20 );
 
-#ifndef __LINUX__
-	wxObjectDataPtr< WinEntryDataViewModel > winEntryDataViewModel;
-	winEntryDataViewModel = new WinEntryDataViewModel();
-	queryResultsView->AssociateModel( winEntryDataViewModel.get() );
-
 	queryComboBox->Insert( "High Scores", 0 );
 	queryComboBox->Insert( "Fastest Wins", 1 );
 	queryComboBox->SetValue( "High Scores" );
+
+#ifndef AVOID_GTK_DATAVIEW_BUG
+	wxObjectDataPtr< WinEntryDataViewModel > winEntryDataViewModel;
+	winEntryDataViewModel = new WinEntryDataViewModel();
+	queryResultsView->AssociateModel( winEntryDataViewModel.get() );
 
 	queryResultsView->AppendColumn( new wxDataViewColumn( "Winner", new wxDataViewTextRenderer(), 0 ) );
 	queryResultsView->AppendColumn( new wxDataViewColumn( "Score", new wxDataViewTextRenderer(), 1 ) );
@@ -80,7 +80,7 @@ WinnerPanel::WinnerPanel( void )
 {
 	if( queryResultsView )
 	{
-#ifndef __LINUX__
+#ifndef AVOID_GTK_DATAVIEW_BUG
 		queryResultsView->GetModel()->Cleared();
 #else
 		queryResultsView->DeleteAllItems();
@@ -109,7 +109,7 @@ bool WinnerPanel::ExecuteQuery( void )
 	
 	do
 	{
-#ifndef __LINUX__
+#ifndef AVOID_GTK_DATAVIEW_BUG
 		// This causes the model to re-sense the data, but more importantly, I'm hoping this
 		// invalidates any pointers the model is hanging on to as they are about to become stale.
 		queryResultsView->GetModel()->Cleared();
@@ -125,9 +125,9 @@ bool WinnerPanel::ExecuteQuery( void )
 
 		int winEntryListSize = maxResultsSpin->GetValue();
 
-#ifndef __LINUX__
+#ifndef AVOID_GTK_DATAVIEW_BUG
 		WinEntryDataViewModel* winEntryDataViewModel = ( WinEntryDataViewModel* )queryResultsView->GetModel();
-		WinEntryList& winEntryList = winEntryDataViewModel->winEntryList;
+		Mongo::WinEntryList& winEntryList = winEntryDataViewModel->winEntryList;
 #endif
 		
 		wxString whichQuery = queryComboBox->GetValue();
@@ -176,7 +176,7 @@ void WinnerPanel::OnComboBoxSelectionChanged( wxCommandEvent& event )
 	Update();
 }
 
-#ifndef __LINUX__
+#ifndef AVOID_GTK_DATAVIEW_BUG
 
 //=====================================================================================
 WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
@@ -273,6 +273,6 @@ WinnerPanel::WinEntryDataViewModel::WinEntryDataViewModel( void )
 	return false;
 }
 
-#endif //!__LINUX__
+#endif //!AVOID_GTK_DATAVIEW_BUG
 
 // ChiCheWinnerPanel.cpp

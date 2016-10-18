@@ -2,10 +2,14 @@
 
 #pragma once
 
+//#ifdef __LINUX__
+#	define AVOID_GTK_DATAVIEW_BUG
+//#endif
+
 #include "ChiChePanel.h"
 #include "ChiCheMongo.h"
 #include <wx/combobox.h>
-#ifdef __LINUX__
+#ifdef AVOID_GTK_DATAVIEW_BUG
 #	include <wx/listctrl.h>
 #else
 #	include <wx/dataview.h>
@@ -30,7 +34,7 @@ public:
 	virtual void CreateControls( void ) override;
 	virtual void Update( void ) override;
 
-#ifndef __LINUX__
+#ifndef AVOID_GTK_DATAVIEW_BUG
 	class WinEntryDataViewModel : public wxDataViewModel
 	{
 	public:
@@ -62,7 +66,7 @@ private:
 	wxComboBox* queryComboBox;
 	wxSpinCtrl* maxResultsSpin;
 	wxButton* refreshButton;
-#ifdef __LINUX__
+#ifdef AVOID_GTK_DATAVIEW_BUG
 	wxListView* queryResultsView;
 #else
 	wxDataViewCtrl* queryResultsView;
