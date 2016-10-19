@@ -6,13 +6,13 @@ Tasks
  -- Actually test the program over a real network.  I have only tested the program
     on the loop-back device.
 
- -- I've noticed the following bug.  Setup two human players playing a game.  Have
-    one of them leave; the one who's turn it is.  The other waits for another player
-    to join.  Have a computer player join.  Now it's the computer's turn, but they
-    won't make their move and you can't do it for them.  The game is in a non-
-    progression state.  There are also crashes that happen when a game ends and
-    you try to start another, etc.
+ -- Sometimes a server fails to start as if the port is till being used.
 
- -- You can't restart a server after 1 game is played.  Crash!
+ -- I had a computer client drop, then a human join in its place.  Then all other
+    computer clients didn't wait for any animations to finish before taking their turns.
 
- -- Provide feedback option as sending e-mail to account I setup?  Security may not allow it.
+Note: I've discovered one sneek stratagy against the computer in the case that you are
+      playing in adjacent home-zones.  Being adjacent, the target zones are adjacent too.
+      So, what you can do is put a marble in one of the computer's target zone locations.
+      This prevents the computer from being able to win until you move that marble out.
+      If you set things up right, you can ensure a win.  At least, in some cases.
