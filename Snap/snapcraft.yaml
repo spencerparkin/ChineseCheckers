@@ -5,7 +5,7 @@ description: Play a friendly game of Chinese Checkers against the computer or so
   else on the network (provided you know their IP address), or some combination of the two.
   The playing board animates and is rendered in 3D using OpenGL.  The game is also scored.
   Winner's scores are optionally recorded in a Mongo database.
-confinement: devmode
+confinement: strict
 
 apps:
   chiche:
@@ -17,4 +17,4 @@ parts:
     plugin: scons
     source: https://github.com/spencerparkin/ChineseCheckers.git
     source-branch: stable-release
-    after: [desktop-gtk2]
+    after: [desktop-gtk3]

@@ -13,5 +13,6 @@ Tasks
     progression state.  There are also crashes that happen when a game ends and
     you try to start another, etc.
 
- -- Provide feedback option as sending e-mail to account I setup?  Security may not allow it.
+ -- You can't restart a server after 1 game is played.  Crash!
 
+ -- Provide feedback option as sending e-mail to account I setup?  Security may not allow it.
