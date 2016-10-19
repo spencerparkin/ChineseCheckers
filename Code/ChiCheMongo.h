@@ -36,6 +36,7 @@ public:
 		wxString winnerName;
 		long score;
 		int turnCount;
+		int opponentCount;
 		wxDateTime dateOfWin;
 	};
 

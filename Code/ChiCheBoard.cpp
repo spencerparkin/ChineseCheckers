@@ -111,6 +111,18 @@ int Board::GetParticipants( void )
 }
 
 //=====================================================================================
+int Board::GetOpponentCount( int color )
+{
+	int opponentCount = 0;
+	for( int i = RED; i <= CYAN; i++ )
+		if( i == color )
+			continue;
+		else if( IsParticipant( i ) )
+			opponentCount++;
+	return opponentCount;
+}
+
+//=====================================================================================
 int Board::WhosTurn( void )
 {
 	return whosTurn;

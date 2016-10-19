@@ -125,6 +125,9 @@ namespace ChiChe
 		// Get the participants bit field.
 		int GetParticipants( void );
 
+		// Return how many opponents the given color faces.
+		int GetOpponentCount( int color );
+
 		// Return the occupant at the given location.
 		int OccupantAtLocation( int locationID );
 

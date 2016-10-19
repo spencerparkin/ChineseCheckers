@@ -121,6 +121,7 @@ bool Mongo::WinEntryToBson( const WinEntry& winEntry, _bson_t*& bsonDoc )
 		
 		doc.AddMember( "score", rapidjson::Value().SetInt64( winEntry.score ), doc.GetAllocator() );
 		doc.AddMember( "turnCount", winEntry.turnCount, doc.GetAllocator() );
+		doc.AddMember( "opponentCount", winEntry.opponentCount, doc.GetAllocator() );
 
 		int64_t time_seconds = winEntry.dateOfWin.GetTimeNow();
 		int64_t time_milliseconds = time_seconds * 1000;
@@ -167,6 +168,11 @@ bool Mongo::WinEntryFromBson( WinEntry& winEntry, const _bson_t* bsonDoc )
 		int64_t time_milliseconds = doc[ "dateOfWin" ][ "$date" ].GetInt64();
 		int64_t time_seconds = time_milliseconds / 1000;
 		winEntry.dateOfWin.Set( time_seconds );
+
+		if( doc.HasMember( "opponentCount" ) )
+			winEntry.opponentCount = doc[ "opponentCount" ].GetInt();
+		else
+			winEntry.opponentCount = 0;
 
 		success = true;
 	}

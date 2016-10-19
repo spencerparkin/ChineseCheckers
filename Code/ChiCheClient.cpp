@@ -241,6 +241,7 @@ bool Client::Run( void )
 				Mongo::WinEntry winEntry;
 				winEntry.dateOfWin.SetToCurrent();
 				winEntry.turnCount = board->GetTurnCount( color );
+				winEntry.opponentCount = board->GetOpponentCount( color );
 				board->GetScore( color, winEntry.score );
 				if( type == HUMAN )
 					winEntry.winnerName = wxGetTextFromUser( "Please enter your name for the record.", "Name Entry", wxEmptyString, wxGetApp().GetFrame() );
