@@ -11,6 +11,8 @@ Tasks
  -- I had a computer client drop, then a human join in its place.  Then all other
     computer clients didn't wait for any animations to finish before taking their turns.
 
+ -- A win entry should also tell us how many opponents the winner had.
+
 Note: I've discovered one sneek stratagy against the computer in the case that you are
       playing in adjacent home-zones.  Being adjacent, the target zones are adjacent too.
       So, what you can do is put a marble in one of the computer's target zone locations.
