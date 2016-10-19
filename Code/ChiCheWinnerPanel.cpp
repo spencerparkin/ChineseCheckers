@@ -19,6 +19,9 @@ WinnerPanel::WinnerPanel( void )
 //=====================================================================================
 /*virtual*/ WinnerPanel::~WinnerPanel( void )
 {
+#ifdef AVOID_GTK_DATAVIEW_BUG
+	Mongo::FreeWinEntryList( winEntryList );
+#endif
 }
 
 //=====================================================================================
