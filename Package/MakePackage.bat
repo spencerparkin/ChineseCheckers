@@ -1,0 +1,1 @@
+makeappx pack /f MapFile.txt /p ChineseCheckers.appx

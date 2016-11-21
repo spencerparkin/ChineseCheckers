@@ -2,7 +2,8 @@
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest">
   <Identity Name="48269stp-dev.chiche"
             Version="2.0.0.0"
-            Publisher="CN=645F2DC7-8895-4CBD-A31C-AFB427FFB000" />
+            Publisher="CN=645F2DC7-8895-4CBD-A31C-AFB427FFB000"
+            ProcessorArchitecture="x64"/>
   <Properties>
     <DisplayName>chiche</DisplayName>
     <PublisherDisplayName>stp-dev</PublisherDisplayName>
