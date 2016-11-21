@@ -19,8 +19,10 @@
 *.tss
 *.opensdf
 *.sdf
+*.VC.db
 
 # Built crap
+*.appx
 Build/
 x64/
 ChineseCheckers

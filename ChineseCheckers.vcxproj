@@ -159,19 +159,22 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;__WXMSW__;_UNICODE_;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\include;C:\wxWidgets-3.0.2\include\msvc;C:\SDL2-2.0.4\include;C:\libmongoc\include\libbson-1.0;C:\libmongoc\include\libmongoc-1.0;C:\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalDependencies>wxmsw30u_core.lib;wxbase30u.lib;wxmsw30u_gl.lib;SDL2.lib;comctl32.lib;rpcrt4.lib;advapi32.lib;wsock32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;opengl32.lib;glu32.lib;bson-1.0.lib;mongoc-1.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_x64_dll;C:\SDL2-2.0.4\lib\x64;C:\libmongoc\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/2010/manifest">
+  <Identity Name="48269stp-dev.chiche"
+            Version="2.0.0.0"
+            Publisher="CN=645F2DC7-8895-4CBD-A31C-AFB427FFB000" />
+  <Properties>
+    <DisplayName>chiche</DisplayName>
+    <PublisherDisplayName>stp-dev</PublisherDisplayName>
+    <Logo>icon.png</Logo>
+  </Properties>
+  <Prerequisites>
+    <OSMinVersion>6.2.1</OSMinVersion>
+    <OSMaxVersionTested>6.2.1</OSMaxVersionTested>
+  </Prerequisites>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="chiche" Executable="ChineseCheckers.exe" EntryPoint="main">
+      <VisualElements DisplayName="Chinese Checkers" Description="A wxWidgets/OpenGL implementation of the wonderful game of Chinese Checkers."
+           Logo="icon.png" SmallLogo="icon.png"  
+           ForegroundText="dark" BackgroundColor="#FFFFFF">
+         <SplashScreen Image="icon.png" />
+      </VisualElements>
+    </Application>
+  </Applications>
+</Package>
