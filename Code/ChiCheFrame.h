@@ -47,6 +47,7 @@ namespace ChiChe
 			ID_WinnerPanelToggle,
 			ID_ChatPanelToggle,
 			ID_About,
+			ID_Help,
 			ID_Timer,
 		};
 
@@ -59,6 +60,7 @@ namespace ChiChe
 		void OnNewProcess( wxCommandEvent& event );
 		void OnExit( wxCommandEvent& event );
 		void OnAbout( wxCommandEvent& event );
+		void OnHelp( wxCommandEvent& event );
 		void OnUpdateMenuItemUI( wxUpdateUIEvent& event );
 		void OnTimer( wxTimerEvent& event );
 		void OnClose( wxCloseEvent& event );

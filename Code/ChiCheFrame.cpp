@@ -70,7 +70,10 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	panelMenu->Append( chatMenuItem );
 
 	wxMenu* helpMenu = new wxMenu();
+	wxMenuItem* helpMenuItem = new wxMenuItem( helpMenu, ID_Help, wxT( "Help" ), wxT( "Bring up the program documentation in your browser." ) );
 	wxMenuItem* aboutMenuItem = new wxMenuItem( helpMenu, ID_About, wxT( "About" ), wxT( "Popup a dialog giving information about this program." ) );
+	helpMenu->Append( helpMenuItem );
+	helpMenu->AppendSeparator();
 	helpMenu->Append( aboutMenuItem );
 
 	menuBar = new wxMenuBar();
@@ -94,6 +97,7 @@ Frame::Frame( void ) : wxFrame( 0, wxID_ANY, "Chinese Checkers", wxDefaultPositi
 	Bind( wxEVT_MENU, &Frame::OnNewProcess, this, ID_NewProcess );
 	Bind( wxEVT_MENU, &Frame::OnExit, this, ID_Exit );
 	Bind( wxEVT_MENU, &Frame::OnAbout, this, ID_About );
+	Bind( wxEVT_MENU, &Frame::OnHelp, this, ID_Help );
 	Bind( wxEVT_MENU, &Frame::OnScorePanelToggle, this, ID_ScorePanelToggle );
 	Bind( wxEVT_MENU, &Frame::OnWinnerPanelToggle, this, ID_WinnerPanelToggle );
 	Bind( wxEVT_MENU, &Frame::OnChatPanelToggle, this, ID_ChatPanelToggle );
@@ -321,6 +325,18 @@ void Frame::OnAbout( wxCommandEvent& event )
 	aboutDialogInfo.SetWebSite( wxT( "http://spencerparkin.github.io/ChineseCheckers/" ) );
 
 	wxAboutBox( aboutDialogInfo );
+}
+
+//=====================================================================================
+void Frame::OnHelp( wxCommandEvent& event )
+{
+	wxBusyCursor busyCursor;
+	wxString url = "http://spencerparkin.github.io/ChineseCheckers";
+#if !defined LINUX
+	wxLaunchDefaultBrowser( url );
+#else
+	system( "/usr/local/bin/xdg-open " + url );
+#endif
 }
 
 //=====================================================================================

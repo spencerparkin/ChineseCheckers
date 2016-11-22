@@ -8,6 +8,7 @@ obj_env.MergeFlags( '!pkg-config --cflags --libs libmongoc-1.0' )
 obj_env.MergeFlags( '!pkg-config --cflags --libs libbson-1.0' )
 obj_env.Append( CCFLAGS = '--std=c++11' )
 #obj_env.Append( CCFLAGS = '-ggdb' )
+obj_env.Append( CCFLAGS = '-DLINUX' )
 
 if not obj_env.GetOption( 'clean' ):
   conf = Configure( obj_env )
